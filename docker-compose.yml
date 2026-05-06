@@ -2,17 +2,33 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 1234
-      POSTGRES_DB: student_management
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "${DB_PORT_HOST}:${DB_PORT_CONTAINER}"
 
   web:
-    build: .
+    build: ./backend
     ports:
-      - "8000:8000"
+      - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://user:password@db:5432/student_management
+      DATABASE_URL: ${DATABASE_URL}
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT_HOST}:5173"
+    env_file:
+      - .env
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:${APP_PORT_HOST}
+    depends_on:
+      - web
