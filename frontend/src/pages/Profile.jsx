@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../api/axiosConfig';
+import axios from '../api/axiosConfig.js';
 import { Card, Tag, Spin, Result, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
