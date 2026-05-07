@@ -1,16 +1,47 @@
-# React + Vite
+# Frontend - Student Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend of the Student Management System, built with **React**, **Vite**, and **Ant Design**.
 
-Currently, two official plugins are available:
+## 🚀 Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+To get the frontend up and running locally, follow these steps:
 
-## React Compiler
+### 1. Prerequisites
+- **Node.js**: v20 or later (LTS recommended)
+- **npm** or **yarn**
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. Installation
+Navigate to the frontend directory and install the required dependencies:
+```bash
+cd frontend
+npm install
+```
 
-## Expanding the ESLint configuration
+### 3. Environment Configuration
+Create a `.env` file in the root of the frontend folder (you can copy from `.env.example`):
+```bash
+cp .env.example .env
+```
+Ensure the `VITE_API_URL` points to your backend server (e.g., `http://localhost:8000`).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 4. Development Server
+Start the development server with hot-reload:
+```bash
+npm run dev
+```
+Once started, the application will be available at: [http://localhost:5173](http://localhost:5173)
+
+### 5. Production Build
+To build the project for production, run:
+```bash
+npm run build
+```
+The optimized files will be generated in the `dist/` directory.
+
+---
+
+## 🐳 Running with Docker (Recommended)
+If you prefer using Docker, you can start the entire stack (Frontend, Backend, DB) from the project root:
+```bash
+docker-compose up --build
+```
