@@ -145,7 +145,7 @@ const Login = () => {
 
         {/* Footer */}
         <div style={{ textAlign: "center", fontSize: 13, color: "#8c8c8c" }}>
-          Need help? Contact <a href="mailto:dut@school.edu">0905151447</a>
+          Need help? Contact <a href="mailto:it@school.edu">it@school.edu</a>
         </div>
       </div>
     </div>
