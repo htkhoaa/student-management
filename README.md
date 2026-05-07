@@ -29,9 +29,9 @@ docker-compose up --build
 ```
 *Verification:*
 - Wait until the terminal displays: `Uvicorn running on http://0.0.0` as shown below:
- ![Uvicorn Running](./assets/screenshots/uvicorn_running.png)
+ ![Uvicorn Running](backend/assets/screenshots/uvicorn_running.png)
 - You should see the student_management stack running in your Docker Desktop as shown below:
- ![Docker Running](./assets/screenshots/docker_running.png)
+ ![Docker Running](backend/assets/screenshots/docker_running.png)
 
 ### Step 3: Access the Application
 *   **Base Url:** [http://localhost:8000](http://localhost:8000)
@@ -45,10 +45,11 @@ docker-compose up --build
 *  📋 `Dockerfile`: Build instructions for the Docker image.
 
 ## 📝 Database Configuration
-- User: `user`
-- Password: `1234`
-- DB: `student_management`
-- Port: `5432`
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
+2. Update your credentials (User, Password, Ports) inside the `.env` file.
 ## 🛑 Stopping the Application
 - To stop the services, press `Ctrl + C`
   - To start again, only run `docker-compose up`
