@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 def login(db: Session, req: LoginRequest):
     user = get_user_by_username(db, req.username)
-
     # 1. Validate whether user exists and password verified.
     if not user or not verify_password(req.password, user.password_hash):
         raise AppException(ErrorCode.UNAUTHENTICATED)
