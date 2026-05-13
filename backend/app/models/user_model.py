@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, ForeignKey, Enum, Boolean, Integer
 from .base_model import Base, TimestampMixin
 from .constant import UserRole
+from sqlalchemy.orm import relationship
 
 
 class User(Base, TimestampMixin):
@@ -12,3 +13,5 @@ class User(Base, TimestampMixin):
     role = Column(Enum(UserRole), nullable=False, default=UserRole.STUDENT)
     is_active = Column(Boolean, default=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="SET NULL"), unique=True, nullable=True)
+
+    student = relationship("Student", back_populates="user")

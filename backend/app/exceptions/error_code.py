@@ -1,8 +1,8 @@
 from enum import Enum
 from starlette import status
 
-class ErrorCode(Enum):
 
+class ErrorCode(Enum):
     UNAUTHENTICATED = (1001, "Invalid username or password", status.HTTP_401_UNAUTHORIZED)
     UNAUTHORIZED = (1002, "You do not have permission to access this resource", status.HTTP_403_FORBIDDEN)
 
@@ -13,8 +13,8 @@ class ErrorCode(Enum):
     INVALID_TOKEN = (4000, "Invalid or expired token", status.HTTP_401_UNAUTHORIZED)
     CREDENTIALS_VALIDATION_FAILED = (4001, "Could not validate credentials", status.HTTP_401_UNAUTHORIZED)
 
-    UNCATEGORIZED_EXCEPTION = (9999, "Uncategorized system error", status.HTTP_500_INTERNAL_SERVER_ERROR)
     VALIDATION_ERROR = (8888, "Invalid input data", status.HTTP_422_UNPROCESSABLE_ENTITY)
+    INTERNAL_SERVER_ERROR = (5555, "Error System", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def __init__(self, code, message, status_code):
         self.code = code
