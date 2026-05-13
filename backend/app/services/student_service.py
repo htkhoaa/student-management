@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.student_model import STUDENT_ACTIVE
+from app.models.student_model import Student, STUDENT_ACTIVE
 from app.models.constant import UserRole
 from app.schemas.student import StudentCreateRequest
 from app.repositories.student_repo import StudentRepository
@@ -18,51 +18,55 @@ class StudentService:
         self.db = db
         self.student_repo = StudentRepository(db)
 
-    def _generate_next_student_id_number(self) -> str:
-        latest_username = self.student_repo.get_latest_username()
-
-        if latest_username and latest_username.isdigit():
-            return str(int(latest_username) + 1)
-        return DEFAULT_STUDENT_CODE
+    def _generate_next_student_code(self) -> str:
+        latest = self.student_repo.get_latest_username()
+        return str(int(latest) + 1) if latest and latest.isdigit() else DEFAULT_STUDENT_CODE
 
     def create(self, payload: StudentCreateRequest) -> StudentResponse:
-        student_code = self._generate_next_student_id_number()
+        student_code = self._generate_next_student_code()
         email = f"{student_code}@dut.edu.vn"
 
-        student = {
-            "full_name": payload.full_name,
-            "email": email,
-            "gender": payload.gender,
-            "phone": payload.phone,
-            "class_id": payload.class_id
-        }
-        user = {
-            "username": student_code,
-            "email": email,
+        s_data = {**payload.dict(), "email": email}
+        u_data = {
+            "username": student_code, "email": email,
             "password_hash": get_password_hash(DEFAULT_STUDENT_PASSWORD),
-            "role": UserRole.STUDENT,
-            "is_active": STUDENT_ACTIVE
+            "role": UserRole.STUDENT, "is_active": STUDENT_ACTIVE
         }
+
         try:
-            new_student = self.student_repo.create_with_account(student=student, user=user)
-
-            student_profile = self.student_repo.get_student_profile(new_student.id)
-
-            if not student_profile:
-                raise AppException(ErrorCode.STUDENT_NOT_FOUND, "Record not found")
-
-            return StudentResponse(
-                id=student_profile.id,
-                full_name=student_profile.full_name,
-                email=student_profile.email,
-                gender=student_profile.gender,
-                phone=student_profile.phone,
-                class_id=student_profile.class_id,
-                class_name=student_profile.student_class.name if student_profile.student_class else DEFAULT_CLASS_NAME,
-                username=student_profile.user.username if student_profile.user else student_code,
-                is_active=student_profile.user.is_active if student_profile.user else STUDENT_ACTIVE
-            )
+            new_s = self.student_repo.create_with_account(s_data, u_data)
+            return self._to_response(self.student_repo.get_student_profile(new_s.id))
 
         except Exception as e:
             self.db.rollback()
             raise AppException(ErrorCode.INTERNAL_SERVER_ERROR, f"Failed to create student package: {str(e)}")
+
+    def get_all(self, skip: int = 0, limit: int = 20, **filters) -> dict:
+        students = self.student_repo.get_all_with_details(skip, limit, **filters)
+        total = self.student_repo.count_all(**filters)
+
+        return {
+            "items": [self._to_response(s) for s in students],
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+
+    def get_by_id(self, s_id: int) -> StudentResponse:
+        s = self.student_repo.get_student_profile(s_id)
+        if not s: raise AppException(ErrorCode.STUDENT_NOT_FOUND)
+        return self._to_response(s)
+
+    def _to_response(self, student: Student) -> StudentResponse:
+        return StudentResponse(
+            id=student.id,
+            full_name=student.full_name,
+            email=student.email,
+            gender=student.gender,
+            phone=student.phone,
+            class_id=student.class_id,
+
+            class_name=student.student_class.name if student.student_class else DEFAULT_CLASS_NAME,
+            username=student.user.username if student.user else None,
+            is_active=student.user.is_active if student.user else True
+        )
