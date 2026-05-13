@@ -118,6 +118,7 @@ const StudentModal = ({ visible, onClose, onSuccess, initialData = null }) => {
           >
             <Select.Option value="MALE">Male</Select.Option>
             <Select.Option value="FEMALE">Female</Select.Option>
+            <Select.Option value="OTHER">Other</Select.Option>
           </Select>
         </div>
         <div style={ms.field}>
