@@ -5,6 +5,9 @@ from app.models.class_model import Class
 from app.models.student_model import Student
 from app.core.security import get_password_hash
 from sqlalchemy.orm import Session
+from app.models.base_model import Base
+from app.db.session import engine
+
 import logging
 
 ADMIN_USERNAME = "admin"
@@ -147,17 +150,32 @@ def seed_users_and_students(db: Session):
     db.commit()
     logger.info("✅ Seeded students successfully!")
 
-def run_seed():
+
+def run_seed(engine=None) -> None:
+    if engine:
+        Base.metadata.create_all(bind=engine)
+
     db = SessionLocal()
     try:
+        # 1. CHECK VALIDATION: Skip seeding if classes already exist to prevent IntegrityError
+        from app.models.class_model import Class  # Adjust import path to your Class model
+        if db.query(Class).first() is not None:
+            logger.info("⚡ Database already seeded. Skipping seeder script.")
+            return
+
+        logger.info("🌱 Database is empty. Starting data seeder...")
         seed_classes(db)
         seed_users_and_students(db)
         logger.info("🌟 SEEDING COMPLETED SUCCESSFULLY!")
+
     except Exception as e:
         logger.error(f"❌ Seeding failed: {e}")
         db.rollback()
     finally:
         db.close()
 
+
 if __name__ == "__main__":
-    run_seed()
+    from app.db.session import engine  # Import your actual database engine here
+
+    run_seed(engine)
