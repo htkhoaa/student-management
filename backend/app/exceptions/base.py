@@ -1,6 +1,7 @@
 from .error_code import ErrorCode
 from typing import overload, Optional
 
+
 class AppException(Exception):
     @overload
     def __init__(self, error_code: ErrorCode) -> None: ...
