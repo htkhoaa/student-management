@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import Optional
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select
+from typing import Optional, List
+from sqlalchemy import select, func
 from app.models.student_model import Student
 from app.models.user_model import User
 
 STUDENT_CODE_PATTERN = "12323%"
+DEFAULT_CLASS_NAME = "Unassigned"
 
 
 class StudentRepository:
@@ -26,11 +27,32 @@ class StudentRepository:
         return new_student
 
     def get_username_by_id(self, student_id: int) -> Optional[str]:
-        stmt = select(User.username).where(User.student_id == student_id)
-        return self.db.scalars(stmt).first()
+        query = select(User.username).where(User.student_id == student_id)
+        return self.db.scalars(query).first()
 
-    def get_student_profile(self, student_id: int) -> Optional[Student]:
-        stmt = (
+    def get_all_with_details(
+            self, skip: int, limit: int, class_id: Optional[int], is_active: Optional[bool]
+    ) -> List[Student]:
+        query = (select(Student).options(
+            joinedload(Student.user),
+            joinedload(Student.student_class)
+        ).outerjoin(User, User.student_id == Student.id))
+
+        if class_id is not None:
+            query = query.where(Student.class_id == class_id)
+        if is_active is not None:
+            query = query.where(User.is_active == is_active)
+
+        return self.db.scalars(query.offset(skip).limit(limit)).unique().all()
+
+    def count_all(self, class_id: Optional[int], is_active: Optional[bool]) -> int:
+        query = select(func.count(Student.id)).outerjoin(User, User.student_id == Student.id)
+        if class_id is not None: query = query.where(Student.class_id == class_id)
+        if is_active is not None: query = query.where(User.is_active == is_active)
+        return self.db.execute(query).scalar() or 0
+
+    def get_student_profile(self, student_id: int):
+        query = (
             select(Student)
             .options(
                 joinedload(Student.user),
@@ -38,12 +60,12 @@ class StudentRepository:
             )
             .where(Student.id == student_id)
         )
-        return self.db.scalars(stmt).first()
+        return self.db.scalars(query).first()
 
     def get_latest_username(self) -> Optional[str]:
-        stmt = (
+        query = (
             select(User.username)
             .where(User.username.like(STUDENT_CODE_PATTERN))
             .order_by(User.username.desc())
         )
-        return self.db.scalars(stmt).first()
+        return self.db.scalars(query).first()

@@ -1,11 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from app.models.constant import GenderType
 
 
 # 1. STUDENT CREATE REQUEST
 class StudentCreateRequest(BaseModel):
-    """DTO for creating a new student. System auto-generates Username and Email."""
     full_name: str = Field(..., max_length=150, min_length=2, description="Student full name")
     gender: GenderType = Field(default=GenderType.MALE, description="Student gender")
     phone: Optional[str] = Field(None, max_length=20, pattern=r"^[0-9+]*$", description="Phone number")
@@ -24,7 +23,6 @@ class StudentCreateRequest(BaseModel):
 
 # 3. STUDENT RESPONSE
 class StudentResponse(BaseModel):
-    """DTO for student output data, including account credentials and relation details."""
     id: int
     full_name: str
     email: str
@@ -38,3 +36,11 @@ class StudentResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+# 3. STUDENT PAGINATION RESPONSE
+class StudentPaginationResponse(BaseModel):
+    items: List[StudentResponse]
+    total: int
+    skip: int
+    limit: int

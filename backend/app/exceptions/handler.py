@@ -5,8 +5,8 @@ from fastapi.exceptions import RequestValidationError
 from .base import AppException
 from .error_code import ErrorCode
 
-def register_exception_handlers(app: FastAPI):
 
+def register_exception_handlers(app: FastAPI):
     @app.exception_handler(AppException)
     async def app_exception_handler(request: Request, exc: AppException):
         return create_error_response(
@@ -30,8 +30,8 @@ def register_exception_handlers(app: FastAPI):
     async def universal_exception_handler(request: Request, exc: Exception):
         return create_error_response(
             request,
-            code=ErrorCode.UNCATEGORIZED_EXCEPTION.code,
-            message=ErrorCode.UNCATEGORIZED_EXCEPTION.message,
+            code=ErrorCode.INTERNAL_SERVER_ERROR.code,
+            message=ErrorCode.INTERNAL_SERVER_ERROR.message,
             status_code=500
         )
 
