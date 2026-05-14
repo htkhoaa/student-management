@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 from app.core.security import role_required
 from typing import Optional
-from app.schemas.student import StudentCreateRequest, StudentResponse, StudentPaginationResponse
+from app.schemas.student import StudentCreateRequest, StudentUpdateRequest, StudentResponse, StudentPaginationResponse
 from app.services.student_service import StudentService
 from app.db.session import get_db
 from app.models.user_model import User
@@ -35,3 +35,10 @@ def get_by_id(id: int, db: Session = Depends(get_db),
               current_user: User = Depends(role_required([UserRole.ADMIN]))):
     service = StudentService(db)
     return service.get_by_id(id)
+
+
+@router.put("/{id}", response_model=StudentResponse)
+def update(id: int, payload: StudentUpdateRequest, db: Session = Depends(get_db),
+           current_user: User = Depends(role_required([UserRole.ADMIN]))):
+    service = StudentService(db)
+    return service.update(id, payload)

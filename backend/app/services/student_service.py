@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.student_model import Student, STUDENT_ACTIVE
 from app.models.constant import UserRole
-from app.schemas.student import StudentCreateRequest
+from app.schemas.student import StudentCreateRequest, StudentUpdateRequest
 from app.repositories.student_repo import StudentRepository
 from app.core.security import get_password_hash
 from app.exceptions.error_code import ErrorCode
@@ -56,6 +56,25 @@ class StudentService:
         s = self.student_repo.get_student_profile(s_id)
         if not s: raise AppException(ErrorCode.STUDENT_NOT_FOUND)
         return self._to_response(s)
+
+    def update(self, student_id: int, payload: StudentUpdateRequest) -> StudentResponse:
+        student = self.student_repo.get_by_id(student_id)
+        if not student:
+            raise AppException(ErrorCode.STUDENT_NOT_FOUND)
+
+        student_update = payload.model_dump(exclude_unset=True)
+
+        try:
+            for key, value in student_update.items():
+                setattr(student, key, value)
+            self.db.commit()
+
+            updated_profile = self.student_repo.get_student_profile(student_id)
+            return self._to_response(updated_profile)
+
+        except Exception as e:
+            self.db.rollback()
+            raise AppException(ErrorCode.INTERNAL_SERVER_ERROR, f"Failed to update student: {str(e)}")
 
     def _to_response(self, student: Student) -> StudentResponse:
         return StudentResponse(
