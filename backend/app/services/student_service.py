@@ -58,6 +58,7 @@ class StudentService:
         return self._to_response(s)
 
     def update(self, student_id: int, payload: StudentUpdateRequest) -> StudentResponse:
+
         student = self.student_repo.get_by_id(student_id)
         if not student:
             raise AppException(ErrorCode.STUDENT_NOT_FOUND)
@@ -75,6 +76,19 @@ class StudentService:
         except Exception as e:
             self.db.rollback()
             raise AppException(ErrorCode.INTERNAL_SERVER_ERROR, f"Failed to update student: {str(e)}")
+
+    def delete(self, student_id: int) -> None:
+        student = self.student_repo.get_student_profile(student_id)
+
+        if not student:
+            raise AppException(ErrorCode.STUDENT_NOT_FOUND)
+
+        try:
+            self.student_repo.delete(student)
+
+        except Exception as e:
+            self.db.rollback()
+            raise AppException(ErrorCode.INTERNAL_SERVER_ERROR, f"Could not deactivate student: {str(e)}")
 
     def _to_response(self, student: Student) -> StudentResponse:
         return StudentResponse(

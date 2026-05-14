@@ -42,3 +42,10 @@ def update(id: int, payload: StudentUpdateRequest, db: Session = Depends(get_db)
            current_user: User = Depends(role_required([UserRole.ADMIN]))):
     service = StudentService(db)
     return service.update(id, payload)
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete(id: int, db: Session = Depends(get_db),
+           current_user: User = Depends(role_required([UserRole.ADMIN]))):
+    service = StudentService(db)
+    service.delete(id)
