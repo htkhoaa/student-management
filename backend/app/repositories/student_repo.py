@@ -80,3 +80,14 @@ class StudentRepository:
             student.user.is_active = False
         self.db.add(student)
         self.db.commit()
+
+    def get_students_by_class(self, class_id: int) -> List[Student]:
+        query = (
+            select(Student)
+            .options(
+                joinedload(Student.user),
+                joinedload(Student.student_class)
+            )
+            .where(Student.class_id == class_id)
+        )
+        return self.db.scalars(query).unique().all()
