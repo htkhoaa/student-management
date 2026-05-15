@@ -23,12 +23,12 @@ const AdminClass = () => {
   const [adminName, setAdminName]   = useState('Admin');
   const [loading, setLoading]       = useState(true);
 
-  // Stats
+  // Stats States
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalClasses, setTotalClasses]   = useState(0);
-  const [distribution, setDistribution] = useState([]);
+  const [distribution, setDistribution]   = useState([]);
 
-  // Filters & Pagination
+  // Filters & Pagination States
   const [search, setSearch]             = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage]                 = useState(1);
@@ -57,7 +57,7 @@ const AdminClass = () => {
         setAdminName(stats.admin_name || 'Admin');
         setTotalClasses(stats.total_classes || mergedClasses.length || 0);
         setTotalStudents(stats.total_students || 0);
-        setDistribution(dist); // Lưu lại distribution nếu cần dùng cho mục đích khác
+        setDistribution(dist);
         setLoading(false);
       })
       .catch(err => {
@@ -67,10 +67,10 @@ const AdminClass = () => {
       });
   }, []);
 
-  // Tính Avg per class
+  // Tính trung bình học sinh mỗi lớp
   const avgPerClass = totalClasses > 0 ? Math.round(totalStudents / totalClasses) : 0;
 
-  // Lọc dữ liệu
+  // Logic lọc dữ liệu theo search và status
   const filtered = classes.filter(c => {
     const q = search.toLowerCase();
     const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.id?.toString().includes(q);
@@ -78,20 +78,11 @@ const AdminClass = () => {
     return matchSearch && matchStatus;
   });
 
+  // Logic phân trang
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const adminInitial = adminName.charAt(0).toUpperCase();
-
-  const handleDelete = (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this class?')) return;
-    axios.delete(`/api/v1/classes/${id}`)
-      .then(() => {
-        message.success('Class deactivated');
-        setClasses(prev => prev.map(c => c.id === id ? { ...c, is_active: false } : c));
-      })
-      .catch(() => message.error('Action failed'));
-  };
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
@@ -101,7 +92,7 @@ const AdminClass = () => {
 
   return (
     <div style={s.shell}>
-      {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
+      {/* ── SIDEBAR ── */}
       <aside style={s.sidebar}>
         <div style={s.logoRow} onClick={() => navigate('/admin/dashboard')}>
           <div style={s.logoBadge}>SM</div>
@@ -131,7 +122,7 @@ const AdminClass = () => {
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
+      {/* ── MAIN CONTENT ── */}
       <div style={s.main}>
         <div style={s.topbar}>
           <div>
@@ -146,12 +137,12 @@ const AdminClass = () => {
           {/* Header Row */}
           <div style={s.pageHeader}>
             <div>
-              <h1 style={s.pageTitle}>Class</h1>
+              <h1 style={s.pageTitle}>Classes</h1>
               <p style={s.pageCount}>Showing {filtered.length} of {totalClasses} total classes</p>
             </div>
           </div>
 
-          {/* Stats Grid (3 columns) */}
+          {/* Stats Grid */}
           <div style={s.statsGrid}>
             <div style={s.statCard}>
               <div style={{ ...s.statIconBox, background: '#ede9fe' }}>
@@ -178,7 +169,6 @@ const AdminClass = () => {
 
           {/* Table Card */}
           <div style={s.tableCard}>
-            {/* Filter Row */}
             <div style={s.filterRow}>
               <div style={s.searchBox}>
                 <Search size={15} color="#bbb" />
@@ -222,14 +212,11 @@ const AdminClass = () => {
               </div>
             </div>
 
-            {/* Table */}
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={{ ...s.th, width: '40px' }}>
-                      <input type="checkbox" />
-                    </th>
+                    <th style={{ ...s.th, width: '40px' }}><input type="checkbox" /></th>
                     <th style={{ ...s.th, width: '15%' }}>CLASS ID</th>
                     <th style={{ ...s.th, width: '35%' }}>CLASS NAME</th>
                     <th style={{ ...s.th, width: '20%' }}>STUDENTS</th>
@@ -239,14 +226,14 @@ const AdminClass = () => {
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ ...s.td, textAlign: 'center', padding: '40px', color: '#bbb' }}>
+                      <td colSpan={5} style={{ ...s.td, textAlign: 'center', padding: '40px', color: '#bbb' }}>
                         No classes found
                       </td>
                     </tr>
                   ) : paginated.map((cls) => (
                     <tr key={cls.id} style={s.tr}>
                       <td style={s.td}><input type="checkbox" /></td>
-                      <td style={{ ...s.td, color: '#666', fontSize: 12 }}>{cls.id || `CLS-${Math.floor(Math.random()*1000)}`}</td>
+                      <td style={{ ...s.td, color: '#666', fontSize: 12 }}>{cls.id}</td>
                       <td style={s.td}>
                         <span style={s.classNameText}>{cls.name}</span>
                       </td>
@@ -278,10 +265,7 @@ const AdminClass = () => {
   );
 };
 
-export default AdminClass;
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-// Kết hợp styles từ 2 file: Layout cơ bản, stat cards của Dashboard, và Table của Student
+// ─── Styles ───
 const s = {
   shell: {
     display: 'flex', height: '100vh', width: '100%',
@@ -327,7 +311,6 @@ const s = {
   },
   userName: { fontSize: 13, fontWeight: 600, color: '#111' },
   userRole: { fontSize: 11, color: '#888' },
-
   main: {
     flex: 1, marginLeft: 220, height: '100vh',
     display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden',
@@ -337,7 +320,6 @@ const s = {
     padding: '14px 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
   },
-  topbarTitle: { fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em'},
   topbarSub: { fontSize: 12, color: '#888', marginTop: 2 },
   bellBtn: {
     width: 36, height: 36, borderRadius: '50%',
@@ -352,23 +334,12 @@ const s = {
     display: 'flex', flexDirection: 'column',
     background: '#fdf4f9',
   },
-
-  /* Tiêu đề & Nút Add */
   pageHeader: {
     display: 'flex', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: 16, gap: 16, flexShrink: 0,
   },
-  pageTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em',lineHeight: '1.2'},
+  pageTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em', lineHeight: '1.2'},
   pageCount: { fontSize: 13, color: '#888', marginTop: 4, marginBottom: 0 },
-  btnAdd: {
-    display: 'flex', alignItems: 'center', gap: 7,
-    padding: '8px 16px', fontSize: 13,
-    border: 'none', borderRadius: 10,
-    background: '#e91e8c', color: '#fff',
-    cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
-  },
-
-  /* Stat Cards */
   statsGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
     gap: 14, marginBottom: 16, flexShrink: 0,
@@ -384,8 +355,6 @@ const s = {
   },
   statLabel: { fontSize: 13, color: '#888', marginBottom: 6 },
   statValue: { fontSize: 28, fontWeight: 700, color: '#111' },
-
-  /* Table Container */
   tableCard: {
     background: '#fff', border: '0.5px solid #e5e7eb',
     borderRadius: 14, width: '100%',
@@ -425,8 +394,6 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', color: '#555', transition: 'background 0.1s',
   },
-
-  /* Table styling */
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
   th: {
     padding: '6px 16px', textAlign: 'left', verticalAlign: 'middle',
@@ -441,12 +408,6 @@ const s = {
     padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
     whiteSpace: 'nowrap', flexShrink: 0,
   },
-  actions: {
-    display: 'flex', alignItems: 'center', gap: 2,
-    justifyContent: 'center', flexShrink: 0, overflow: 'visible',
-  },
-  actionBtn: {
-    width: 28, height: 28, borderRadius: 6, border: 'none', background: 'transparent',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
-  },
 };
+
+export default AdminClass;

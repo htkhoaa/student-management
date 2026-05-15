@@ -50,7 +50,7 @@ const AdminDashboard = () => {
   return (
     <div style={s.shell}>
 
-      {/* --- SIDEBAR - Synced with StudentTable layout --- */}
+      {/* Sidebar - Integrated stable layout */}
       <aside style={s.sidebar}>
         <div style={s.logoRow} onClick={() => navigate('/admin/dashboard')}>
           <div style={s.logoBadge}>SM</div>
@@ -82,10 +82,8 @@ const AdminDashboard = () => {
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT AREA --- */}
+      {/* Main Content Area */}
       <div style={s.main}>
-
-        {/* Topbar - Padding synced with StudentTable */}
         <div style={s.topbar}>
           <div>
             <div style={s.topbarSub}>Academic year 2025–2026</div>
@@ -95,10 +93,7 @@ const AdminDashboard = () => {
           </button>
         </div>
 
-        {/* Content Section */}
         <div style={s.content}>
-
-          {/* Greeting row */}
           <div style={s.greetingRow}>
             <div>
               <h1 style={s.greetingTitle}>{getGreeting()}, {adminName}</h1>
@@ -106,7 +101,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Stats Cards Grid */}
           <div style={s.statsGrid}>
             <div style={s.statCard}>
               <div style={{ ...s.statIconBox, background: '#fce8f3' }}>
@@ -124,7 +118,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Enrollment Analytics Chart */}
           <div style={s.chartCard}>
             <div style={s.chartTitle}>Class distribution</div>
             <div style={s.chartSub}>Students enrolled per class</div>
@@ -152,7 +145,6 @@ const AdminDashboard = () => {
               </ResponsiveContainer>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -161,15 +153,13 @@ const AdminDashboard = () => {
 
 export default AdminDashboard;
 
-// --- Styles - Fully synced with StudentTable component ---
+// --- Cleaned Style Constants ---
 const s = {
   shell: {
     display: 'flex', height: '100vh',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     background: '#fdf4f9', overflow: 'hidden',
   },
-
-  /* Sidebar Styles */
   sidebar: {
     width: 220, minWidth: 220, background: '#fdf4f9',
     borderRight: '0.5px solid #e5e7eb',
@@ -209,18 +199,15 @@ const s = {
   },
   userName: { fontSize: 13, fontWeight: 600, color: '#111' },
   userRole: { fontSize: 11, color: '#888' },
-
-  /* Main Area Styles */
   main: {
     flex: 1, marginLeft: 220, height: '100vh',
     display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden',
   },
   topbar: {
     background: '#fff', borderBottom: '0.5px solid #e5e7eb',
-    padding: '16px 24px', // Synced with StudentTable
+    padding: '16px 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
   },
-  topbarTitle: { fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em'},
   topbarSub: { fontSize: 12, color: '#888', marginTop: 2 },
   bellBtn: {
     width: 36, height: 36, borderRadius: '50%',
@@ -228,29 +215,17 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', background: 'transparent',
   },
-
-  /* Content - Internal vertical scroll, synced padding */
   content: {
     flex: 1, minHeight: 0, overflowY: 'auto',
     padding: '16px 24px', boxSizing: 'border-box',
     background: '#fdf4f9',
   },
-
   greetingRow: {
     display: 'flex', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: 20, gap: 16,
   },
   greetingTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em', lineHeight: '1.2'},
   greetingSub: { fontSize: 13, color: '#888', marginTop: 4, marginBottom: 0 },
-  btnAdd: {
-    display: 'flex', alignItems: 'center', gap: 7,
-    padding: '8px 16px', fontSize: 13,
-    border: 'none', borderRadius: 10,
-    background: '#e91e8c', color: '#fff',
-    cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
-  },
-
-  /* Statistic Cards */
   statsGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
     gap: 14, marginBottom: 20,
@@ -266,8 +241,6 @@ const s = {
   },
   statLabel: { fontSize: 13, color: '#888', marginBottom: 8 },
   statValue: { fontSize: 30, fontWeight: 700, color: '#111' },
-
-  /* Chart Styles */
   chartCard: {
     background: '#fff', border: '0.5px solid #e5e7eb',
     borderRadius: 14, padding: '20px 22px',

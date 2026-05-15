@@ -10,6 +10,7 @@ import StudentModal from "../../components/StudentModal.jsx";
 import StudentDetailsModal from "../../components/StudentDetailModal.jsx";
 import { Modal as AntdModal } from 'antd';
 
+// --- Navigation Configuration ---
 const NAV_MANAGE = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
   { key: 'students',  label: 'Students',  icon: Users,            path: '/admin/student'  },
@@ -41,7 +42,7 @@ const StudentTable = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage]                 = useState(1);
 
-  // States cho Modals
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -56,6 +57,7 @@ const StudentTable = () => {
     ])
       .then(([stuRes, clsRes, statsRes]) => {
         const rawStudents = stuRes.data.items || [];
+        // Sort by username ascending
         const sortedStudents = rawStudents.sort((a, b) =>
           String(a.username).localeCompare(String(b.username))
         );
@@ -85,18 +87,18 @@ const StudentTable = () => {
   });
 
   // --- Handlers ---
-
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
     setPage(1);
   };
 
   const handleAddStudent = () => {
-    setSelectedStudent(null); // Reset dữ liệu để modal hiểu là thêm mới
+    setSelectedStudent(null);
     setIsModalOpen(true);
   };
 
   const handleView = (id) => {
+    setLoading(true);
     axios.get(`/api/v1/students/${id}`)
       .then(res => {
         setSelectedStudent(res.data);
@@ -107,7 +109,7 @@ const StudentTable = () => {
   };
 
   const handleEdit = (stu) => {
-    setSelectedStudent(stu); // Truyền dữ liệu dòng hiện tại vào state
+    setSelectedStudent(stu);
     setIsModalOpen(true);
   };
 
@@ -127,7 +129,6 @@ const StudentTable = () => {
     });
   };
 
-  // --- Pagination logic ---
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const adminInitial = adminName.charAt(0).toUpperCase();
@@ -140,6 +141,7 @@ const StudentTable = () => {
 
   return (
     <div style={s.shell}>
+      {/* SIDEBAR */}
       <aside style={s.sidebar}>
         <div style={s.logoRow} onClick={() => navigate('/admin/dashboard')}>
           <div style={s.logoBadge}>SM</div>
@@ -169,6 +171,7 @@ const StudentTable = () => {
         </div>
       </aside>
 
+      {/* MAIN CONTENT */}
       <div style={s.main}>
         <div style={s.topbar}>
           <div>
@@ -296,7 +299,7 @@ const StudentTable = () => {
                             <Eye size={15} color="#bbb" />
                           </button>
                           <button style={s.actionBtn} title="Edit" onClick={() => handleEdit(stu)}>
-                            <Pencil size={15} color="#bbb" />
+                            < Pencil size={15} color="#bbb" />
                           </button>
                           <button style={s.actionBtn} title="Delete" onClick={() => handleDelete(stu.id, stu.full_name)}>
                             <Trash2 size={15} color="#fca5a5" />
@@ -312,7 +315,6 @@ const StudentTable = () => {
         </div>
       </div>
 
-      {/* Modal Thêm/Sửa */}
       <StudentModal
         visible={isModalOpen}
         initialData={selectedStudent}
@@ -326,7 +328,6 @@ const StudentTable = () => {
         }}
       />
 
-      {/* Modal Chi tiết */}
       <StudentDetailsModal
         visible={isDetailsOpen}
         data={selectedStudent}
@@ -342,7 +343,6 @@ const StudentTable = () => {
 export default StudentTable;
 
 const s = {
-  /* Styles giữ nguyên như cũ của bạn */
   shell: {
     display: 'flex', height: '100vh', width: '100%',
     fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -387,7 +387,6 @@ const s = {
   },
   userName: { fontSize: 13, fontWeight: 600, color: '#111' },
   userRole: { fontSize: 11, color: '#888' },
-
   main: {
     flex: 1, marginLeft: 220, height: '100vh',
     display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden',
@@ -397,7 +396,6 @@ const s = {
     padding: '16px 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
   },
-  topbarTitle: { fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em'},
   topbarSub: { fontSize: 12, color: '#888', marginTop: 2 },
   bellBtn: {
     width: 36, height: 36, borderRadius: '50%',
@@ -425,15 +423,12 @@ const s = {
     background: '#e91e8c', color: '#fff',
     cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
   },
-
   tableCard: {
     background: '#fff', border: '0.5px solid #e5e7eb',
     borderRadius: 14, width: '100%',
     flex: 1, minHeight: 0,
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   },
-
-  /* Filter row */
   filterRow: {
     display: 'flex', alignItems: 'center', gap: 10,
     padding: '10px 16px', borderBottom: '0.5px solid #f0f0f0',
@@ -456,8 +451,6 @@ const s = {
     background: '#fff',
   },
   selectArrow: { position: 'absolute', right: 8, pointerEvents: 'none' },
-
-  /* Pagination — pushed to right using marginLeft: auto */
   pagination: {
     display: 'flex', alignItems: 'center', gap: 4,
     marginLeft: 'auto', flexShrink: 0,
@@ -472,8 +465,6 @@ const s = {
     cursor: 'pointer', color: '#555',
     transition: 'background 0.1s',
   },
-
-  /* Table */
   table: {
     width: '100%', borderCollapse: 'collapse', fontSize: 13,
     tableLayout: 'fixed', minWidth: 780,
@@ -488,7 +479,6 @@ const s = {
     padding: '7px 16px', verticalAlign: 'middle',
     textAlign: 'left', whiteSpace: 'nowrap',
   },
-
   stuName: { fontSize: 13, fontWeight: 600, color: '#111' },
   classBadge: {
     display: 'inline-block', padding: '3px 9px',
@@ -499,7 +489,6 @@ const s = {
     padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
     whiteSpace: 'nowrap', flexShrink: 0,
   },
-
   actions: {
     display: 'flex', alignItems: 'center', gap: 2,
     justifyContent: 'center', flexShrink: 0,
