@@ -58,16 +58,22 @@ class StudentService:
         return self._to_response(s)
 
     def update(self, student_id: int, payload: StudentUpdateRequest) -> StudentResponse:
-
         student = self.student_repo.get_by_id(student_id)
         if not student:
             raise AppException(ErrorCode.STUDENT_NOT_FOUND)
 
+        # Chuyển payload thành dict, loại bỏ các trường không gửi lên
         student_update = payload.model_dump(exclude_unset=True)
 
         try:
             for key, value in student_update.items():
-                setattr(student, key, value)
+                if key == "is_active":
+                    if student.user:
+                        setattr(student.user, key, value)
+                else:
+                    if hasattr(student, key):
+                        setattr(student, key, value)
+
             self.db.commit()
 
             updated_profile = self.student_repo.get_student_profile(student_id)
@@ -75,7 +81,7 @@ class StudentService:
 
         except Exception as e:
             self.db.rollback()
-            raise AppException(ErrorCode.INTERNAL_SERVER_ERROR, f"Failed to update student: {str(e)}")
+            raise e  # Hoặc AppException như cũ
 
     def delete(self, student_id: int) -> None:
         student = self.student_repo.get_student_profile(student_id)

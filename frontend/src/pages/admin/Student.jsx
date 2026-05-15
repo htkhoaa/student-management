@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Spin, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,7 +10,6 @@ import StudentModal from "../../components/StudentModal.jsx";
 import StudentDetailsModal from "../../components/StudentDetailModal.jsx";
 import { Modal as AntdModal } from 'antd';
 
-// --- Navigation Configuration ---
 const NAV_MANAGE = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
   { key: 'students',  label: 'Students',  icon: Users,            path: '/admin/student'  },
@@ -30,25 +29,23 @@ const PAGE_SIZE = 10;
 const StudentTable = () => {
   const navigate = useNavigate();
 
-  const [students, setStudents]      = useState([]);
-  const [classes,  setClasses]       = useState([]);
-  const [adminName, setAdminName]    = useState('Admin');
-  const [loading, setLoading]        = useState(true);
-  const [total, setTotal]            = useState(0);
+  const [students, setStudents]   = useState([]);
+  const [classes,  setClasses]    = useState([]);
+  const [adminName, setAdminName] = useState('Admin');
+  const [loading, setLoading]     = useState(true);
+  const [total, setTotal]         = useState(0);
 
-  // Filters & Pagination
   const [search,       setSearch]       = useState('');
   const [filterClass,  setFilterClass]  = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage]                 = useState(1);
 
-  // Modal States
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen,   setIsModalOpen]   = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [refreshKey, setRefreshKey]   = useState(0);
 
-  useEffect(() => {
+  // ✅ fetchData dùng useCallback để có thể dùng trong useRef
+  const fetchData = useCallback(() => {
     setLoading(true);
     Promise.all([
       axios.get('/api/v1/students?limit=1000'),
@@ -57,11 +54,7 @@ const StudentTable = () => {
     ])
       .then(([stuRes, clsRes, statsRes]) => {
         const rawStudents = stuRes.data.items || [];
-        // Sort by username ascending
-        const sortedStudents = rawStudents.sort((a, b) =>
-          String(a.username).localeCompare(String(b.username))
-        );
-        setStudents(sortedStudents);
+        setStudents(rawStudents.sort((a, b) => String(a.username).localeCompare(String(b.username))));
         setTotal(stuRes.data.total || 0);
         setClasses(clsRes.data || []);
         setAdminName(statsRes.data?.admin_name || 'Admin');
@@ -72,7 +65,16 @@ const StudentTable = () => {
         message.error('Failed to fetch data from server');
         setLoading(false);
       });
-  }, [refreshKey]);
+  }, []);
+
+  // ✅ Ref luôn giữ bản mới nhất của fetchData — tránh stale closure trong AntdModal
+  const fetchDataRef = useRef(fetchData);
+  useEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
+
+  // Fetch lần đầu khi mount
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
@@ -86,7 +88,6 @@ const StudentTable = () => {
     return matchSearch && matchClass && matchStatus;
   });
 
-  // --- Handlers ---
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
     setPage(1);
@@ -112,27 +113,47 @@ const StudentTable = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id, fullName) => {
-    AntdModal.confirm({
-      title: `Are you sure you want to deactivate ${fullName}?`,
-      content: 'This action will change the student status to Inactive.',
-      okText: 'Yes, Deactivate',
-      okType: 'danger',
-      cancelText: 'No',
-      onOk() {
-        return axios.delete(`/api/v1/students/${id}`).then(() => {
-          message.success(`Deactivated ${fullName} successfully`);
-          setRefreshKey(p => p + 1);
-        }).catch(() => message.error("Failed to deactivate student"));
-      },
-    });
+  const handleDelete = (id, fullName, isActive) => {
+    if (!isActive) {
+      AntdModal.confirm({
+        title: `Reactivate ${fullName}?`,
+        content: 'This student is currently inactive. Do you want to reactivate their account?',
+        okText: 'Yes, Reactivate',
+        okType: 'primary',
+        cancelText: 'Cancel',
+        onOk() {
+          return axios.put(`/api/v1/students/${id}`, { is_active: true })
+            .then(() => {
+              message.success(`Reactivated ${fullName} successfully`);
+              fetchDataRef.current(); // ✅ gọi qua ref, không bị stale closure
+            })
+            .catch(() => message.error("Failed to reactivate student"));
+        },
+      });
+    } else {
+      AntdModal.confirm({
+        title: `Deactivate ${fullName}?`,
+        content: 'This action will change the student status to Inactive.',
+        okText: 'Yes, Deactivate',
+        okType: 'danger',
+        cancelText: 'Cancel',
+        onOk() {
+          return axios.delete(`/api/v1/students/${id}`)
+            .then(() => {
+              message.success(`Deactivated ${fullName} successfully`);
+              fetchDataRef.current(); // ✅ gọi qua ref
+            })
+            .catch(() => message.error("Failed to deactivate student"));
+        },
+      });
+    }
   };
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const adminInitial = adminName.charAt(0).toUpperCase();
 
-  if (loading && refreshKey === 0) return (
+  if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
       <Spin size="large" />
     </div>
@@ -298,10 +319,14 @@ const StudentTable = () => {
                             <Eye size={15} color="#bbb" />
                           </button>
                           <button style={s.actionBtn} title="Edit" onClick={() => handleEdit(stu)}>
-                            < Pencil size={15} color="#bbb" />
+                            <Pencil size={15} color="#bbb" />
                           </button>
-                          <button style={s.actionBtn} title="Delete" onClick={() => handleDelete(stu.id, stu.full_name)}>
-                            <Trash2 size={15} color="#fca5a5" />
+                          <button
+                            style={s.actionBtn}
+                            title={stu.is_active ? 'Deactivate' : 'Reactivate'}
+                            onClick={() => handleDelete(stu.id, stu.full_name, stu.is_active)}
+                          >
+                            <Trash2 size={15} color={stu.is_active ? "#fca5a5" : "#86efac"} />
                           </button>
                         </div>
                       </td>
@@ -323,7 +348,7 @@ const StudentTable = () => {
         }}
         onSuccess={() => {
           setIsModalOpen(false);
-          setRefreshKey(prev => prev + 1);
+          fetchDataRef.current(); // ✅ dùng ref thay cho setRefreshKey
         }}
       />
 
@@ -343,15 +368,15 @@ export default StudentTable;
 
 const s = {
   shell: {
-    display: 'flex', height: '100vh', width: '100%',
+    display: 'flex', height: '100vh', width: '100vw',
+    position: 'fixed', top: 0, left: 0,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: '#fdf4f9', overflow: 'hidden',
+    background: '#fdf4f9', overflow: 'hidden', zIndex: 100,
   },
   sidebar: {
-    width: 220, minWidth: 220, background: '#fff',
-    borderRight: '0.5px solid #e5e7eb',
-    display: 'flex', flexDirection: 'column',
-    position: 'fixed', height: '100vh', left: 0, zIndex: 10,
+    width: 220, minWidth: 220, flexShrink: 0,
+    background: '#fff', borderRight: '0.5px solid #e5e7eb',
+    display: 'flex', flexDirection: 'column', height: '100vh',
   },
   logoRow: {
     display: 'flex', alignItems: 'center', gap: 10,
@@ -387,51 +412,44 @@ const s = {
   userName: { fontSize: 13, fontWeight: 600, color: '#111' },
   userRole: { fontSize: 11, color: '#888' },
   main: {
-    flex: 1, marginLeft: 220, height: '100vh',
-    display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden',
+    flex: 1, height: '100vh',
+    display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden',
   },
   topbar: {
-    background: '#fff', borderBottom: '0.5px solid #e5e7eb',
-    padding: '16px 24px',
+    background: '#fff', borderBottom: '0.5px solid #e5e7eb', padding: '16px 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
   },
   topbarSub: { fontSize: 12, color: '#888', marginTop: 2 },
   bellBtn: {
-    width: 36, height: 36, borderRadius: '50%',
-    border: '0.5px solid #d1d5db',
+    width: 36, height: 36, borderRadius: '50%', border: '0.5px solid #d1d5db',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', background: 'transparent',
   },
   content: {
     flex: 1, minHeight: 0, width: '100%',
     padding: '16px 24px', boxSizing: 'border-box',
-    overflow: 'hidden',
-    display: 'flex', flexDirection: 'column',
+    overflow: 'hidden', display: 'flex', flexDirection: 'column',
     background: '#fdf4f9',
   },
   pageHeader: {
     display: 'flex', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: 12, gap: 16,
   },
-  pageTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em',lineHeight: '1.2'},
+  pageTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em', lineHeight: '1.2' },
   pageCount: { fontSize: 12, color: '#888', marginTop: 3 },
   btnRegister: {
     display: 'flex', alignItems: 'center', gap: 7,
-    padding: '8px 16px', fontSize: 13,
-    border: 'none', borderRadius: 10,
-    background: '#e91e8c', color: '#fff',
-    cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
+    padding: '8px 16px', fontSize: 13, border: 'none', borderRadius: 10,
+    background: '#e91e8c', color: '#fff', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
   },
   tableCard: {
     background: '#fff', border: '0.5px solid #e5e7eb',
-    borderRadius: 14, width: '100%',
-    flex: 1, minHeight: 0,
+    borderRadius: 14, width: '100%', flex: 1, minHeight: 0,
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   },
   filterRow: {
     display: 'flex', alignItems: 'center', gap: 10,
-    padding: '10px 16px', borderBottom: '0.5px solid #f0f0f0',
-    flexWrap: 'nowrap',
+    padding: '10px 16px', borderBottom: '0.5px solid #f0f0f0', flexWrap: 'nowrap',
   },
   searchBox: {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -446,43 +464,26 @@ const s = {
   select: {
     appearance: 'none', border: '0.5px solid #e5e7eb',
     borderRadius: 8, padding: '6px 28px 6px 12px',
-    fontSize: 13, color: '#555', cursor: 'pointer', outline: 'none',
-    background: '#fff',
+    fontSize: 13, color: '#555', cursor: 'pointer', outline: 'none', background: '#fff',
   },
   selectArrow: { position: 'absolute', right: 8, pointerEvents: 'none' },
-  pagination: {
-    display: 'flex', alignItems: 'center', gap: 4,
-    marginLeft: 'auto', flexShrink: 0,
-  },
-  pageInfo: {
-    fontSize: 12, color: '#888', minWidth: 40, textAlign: 'center',
-  },
+  pagination: { display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', flexShrink: 0 },
+  pageInfo: { fontSize: 12, color: '#888', minWidth: 40, textAlign: 'center' },
   pageBtn: {
-    width: 30, height: 30, borderRadius: 7,
-    border: '0.5px solid #e5e7eb', background: '#fff',
+    width: 30, height: 30, borderRadius: 7, border: '0.5px solid #e5e7eb', background: '#fff',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', color: '#555',
-    transition: 'background 0.1s',
+    cursor: 'pointer', color: '#555', transition: 'background 0.1s',
   },
-  table: {
-    width: '100%', borderCollapse: 'collapse', fontSize: 13,
-    tableLayout: 'fixed', minWidth: 780,
-  },
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed', minWidth: 780 },
   th: {
     padding: '9px 16px', textAlign: 'left', verticalAlign: 'middle',
     fontSize: 12, fontWeight: 600, color: '#e91e8c',
     borderBottom: '1px solid #f0f0f0', whiteSpace: 'nowrap', background: '#fff',
   },
   tr: { borderBottom: '0.5px solid #f5f5f5' },
-  td: {
-    padding: '7px 16px', verticalAlign: 'middle',
-    textAlign: 'left', whiteSpace: 'nowrap',
-  },
+  td: { padding: '7px 16px', verticalAlign: 'middle', textAlign: 'left', whiteSpace: 'nowrap' },
   stuName: { fontSize: 13, fontWeight: 600, color: '#111' },
-  classBadge: {
-    display: 'inline-block', padding: '3px 9px',
-    borderRadius: 6, fontSize: 12, fontWeight: 600,
-  },
+  classBadge: { display: 'inline-block', padding: '3px 9px', borderRadius: 6, fontSize: 12, fontWeight: 600 },
   statusBadge: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
@@ -490,12 +491,10 @@ const s = {
   },
   actions: {
     display: 'flex', alignItems: 'center', gap: 2,
-    justifyContent: 'center', flexShrink: 0,
-    overflow: 'visible',
+    justifyContent: 'center', flexShrink: 0, overflow: 'visible',
   },
   actionBtn: {
-    width: 28, height: 28, borderRadius: 6,
-    border: 'none', background: 'transparent',
+    width: 28, height: 28, borderRadius: 6, border: 'none', background: 'transparent',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', flexShrink: 0,
   },
