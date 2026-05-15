@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Button, Typography, Space } from 'antd';
+import { Typography } from 'antd';
 import Login from './pages/Login';
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import StudentTable from "./pages/admin/Student.jsx";
@@ -7,6 +7,7 @@ import AdminClass from "./pages/admin/Class.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Profile from "./pages/student/Profile.jsx"
 import Password from "./pages/student/Password.jsx";
+import Class from "./pages/student/Class.jsx";
 import { UserRole } from "./constants/auth.constant.js";
 const { Title } = Typography;
 
@@ -65,6 +66,15 @@ function App() {
           element={
             <ProtectedRoute allowedRole={UserRole.STUDENT}>
               <Password role={UserRole.STUDENT}/>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/class"
+          element={
+            <ProtectedRoute allowedRole={UserRole.STUDENT}>
+              <Class role={UserRole.STUDENT}/>
             </ProtectedRoute>
           }
         />

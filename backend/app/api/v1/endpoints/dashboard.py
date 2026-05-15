@@ -11,6 +11,4 @@ dashboard_service = DashboardService()
 
 @router.get("/stats", response_model=DashboardStats, status_code=status.HTTP_200_OK)
 def get_dashboard_stats(db: Session = Depends(get_db), current_admin = Depends(role_required([UserRole.ADMIN]))):
-    res = dashboard_service.get_stats(db, admin_name = current_admin.username)
-    print(res.get("total_students"))
     return dashboard_service.get_stats(db, admin_name = current_admin.username)
