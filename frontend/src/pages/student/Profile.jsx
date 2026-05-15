@@ -43,6 +43,13 @@ const StudentProfile = () => {
       });
   }, [studentId, navigate]);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const handleUpdate = () => {
     setIsUpdating(true);
     // Assuming PUT endpoint to update student
