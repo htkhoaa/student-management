@@ -28,7 +28,14 @@ const Login = () => {
       if (userRole === UserRole.ADMIN) {
         navigate("/admin/dashboard");
       } else if (userRole === UserRole.STUDENT) {
-        navigate("/student/profile")
+        console.log(user.student_id)
+        if (user.student_id) {
+
+          localStorage.setItem("studentId", user.student_id);
+          navigate("/student/profile");
+        } else {
+          message.error("Data error: Your account is not linked to a student profile.");
+        }
       }
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Invalid username or password!";
