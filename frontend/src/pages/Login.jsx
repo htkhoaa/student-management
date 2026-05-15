@@ -28,9 +28,7 @@ const Login = () => {
       if (userRole === UserRole.ADMIN) {
         navigate("/admin/dashboard");
       } else if (userRole === UserRole.STUDENT) {
-        console.log(user.student_id)
         if (user.student_id) {
-
           localStorage.setItem("studentId", user.student_id);
           navigate("/student/profile");
         } else {
