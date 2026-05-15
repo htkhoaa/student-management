@@ -33,9 +33,6 @@ class StudentRepository:
     def get_by_id(self, student_id: int) -> Optional[Student]:
         return self.db.get(Student, student_id)
 
-    def get_by_id(self, student_id: int) -> Optional[Student]:
-        return self.db.get(Student, student_id)
-
     def get_all_with_details(
             self, skip: int, limit: int, class_id: Optional[int], is_active: Optional[bool]
     ) -> List[Student]:

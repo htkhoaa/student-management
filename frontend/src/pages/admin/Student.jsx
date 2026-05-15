@@ -2,19 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Spin, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, GitBranch, Settings,
+  LayoutDashboard, Users, GitBranch,
   LogOut, Bell, UserPlus, Search, Eye, Pencil, Trash2, ChevronDown, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import axios from '../../api/axiosConfig';
+import StudentModal from "../../components/StudentModal.jsx";
+import StudentDetailsModal from "../../components/StudentDetailModal.jsx";
+import { Modal as AntdModal } from 'antd';
 
-// ─── Navigation Configuration ────────────────────────────────────────────────
 const NAV_MANAGE = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
   { key: 'students',  label: 'Students',  icon: Users,            path: '/admin/student'  },
   { key: 'classes',   label: 'Classes',   icon: GitBranch,        path: '/admin/class'   },
 ];
 
-// ─── Helper Functions ────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   '#f472b6','#fb7185','#a78bfa','#38bdf8','#34d399',
   '#fb923c','#818cf8','#2dd4bf','#9f7aea',
@@ -34,19 +35,31 @@ const StudentTable = () => {
   const [loading, setLoading]        = useState(true);
   const [total, setTotal]            = useState(0);
 
+  // Filters & Pagination
   const [search,       setSearch]       = useState('');
   const [filterClass,  setFilterClass]  = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage]                 = useState(1);
 
+  // States cho Modals
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [refreshKey, setRefreshKey]   = useState(0);
+
   useEffect(() => {
+    setLoading(true);
     Promise.all([
       axios.get('/api/v1/students?limit=1000'),
       axios.get('/api/v1/classes'),
       axios.get('/api/v1/dashboard/stats'),
     ])
       .then(([stuRes, clsRes, statsRes]) => {
-        setStudents(stuRes.data.items || []);
+        const rawStudents = stuRes.data.items || [];
+        const sortedStudents = rawStudents.sort((a, b) =>
+          String(a.username).localeCompare(String(b.username))
+        );
+        setStudents(sortedStudents);
         setTotal(stuRes.data.total || 0);
         setClasses(clsRes.data || []);
         setAdminName(statsRes.data?.admin_name || 'Admin');
@@ -57,7 +70,7 @@ const StudentTable = () => {
         message.error('Failed to fetch data from server');
         setLoading(false);
       });
-  }, []);
+  }, [refreshKey]);
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
@@ -71,28 +84,55 @@ const StudentTable = () => {
     return matchSearch && matchClass && matchStatus;
   });
 
-  // Reset to page 1 when filters change
+  // --- Handlers ---
+
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
     setPage(1);
   };
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const adminInitial = adminName.charAt(0).toUpperCase();
-
-  const handleDelete = (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this student?')) return;
-    axios.delete(`/api/v1/students/${id}`)
-      .then(() => {
-        message.success('Student deactivated');
-        setStudents(prev => prev.map(s => s.id === id ? { ...s, is_active: false } : s));
-      })
-      .catch(() => message.error('Action failed'));
+  const handleAddStudent = () => {
+    setSelectedStudent(null); // Reset dữ liệu để modal hiểu là thêm mới
+    setIsModalOpen(true);
   };
 
-  if (loading) return (
+  const handleView = (id) => {
+    axios.get(`/api/v1/students/${id}`)
+      .then(res => {
+        setSelectedStudent(res.data);
+        setIsDetailsOpen(true);
+      })
+      .catch(() => message.error("Could not load student details"))
+      .finally(() => setLoading(false));
+  };
+
+  const handleEdit = (stu) => {
+    setSelectedStudent(stu); // Truyền dữ liệu dòng hiện tại vào state
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id, fullName) => {
+    AntdModal.confirm({
+      title: `Are you sure you want to deactivate ${fullName}?`,
+      content: 'This action will change the student status to Inactive.',
+      okText: 'Yes, Deactivate',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk() {
+        return axios.delete(`/api/v1/students/${id}`).then(() => {
+          message.success(`Deactivated ${fullName} successfully`);
+          setRefreshKey(p => p + 1);
+        }).catch(() => message.error("Failed to deactivate student"));
+      },
+    });
+  };
+
+  // --- Pagination logic ---
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const adminInitial = adminName.charAt(0).toUpperCase();
+
+  if (loading && refreshKey === 0) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
       <Spin size="large" />
     </div>
@@ -100,7 +140,6 @@ const StudentTable = () => {
 
   return (
     <div style={s.shell}>
-      {/* SIDEBAR */}
       <aside style={s.sidebar}>
         <div style={s.logoRow} onClick={() => navigate('/admin/dashboard')}>
           <div style={s.logoBadge}>SM</div>
@@ -130,7 +169,6 @@ const StudentTable = () => {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <div style={s.main}>
         <div style={s.topbar}>
           <div>
@@ -147,15 +185,13 @@ const StudentTable = () => {
               <h1 style={s.pageTitle}>Student</h1>
               <p style={s.pageCount}>Showing {filtered.length} of {total} total students</p>
             </div>
-            <button style={s.btnRegister} onClick={() => navigate('/admin/student/create')}>
+            <button style={s.btnRegister} onClick={handleAddStudent}>
               <UserPlus size={15} /> Add student
             </button>
           </div>
 
           <div style={s.tableCard}>
-            {/* ── Filter Row + Pagination ── */}
             <div style={s.filterRow}>
-              {/* Search */}
               <div style={s.searchBox}>
                 <Search size={15} color="#bbb" />
                 <input
@@ -166,7 +202,6 @@ const StudentTable = () => {
                 />
               </div>
 
-              {/* Class filter */}
               <div style={s.selectWrap}>
                 <select style={s.select} value={filterClass} onChange={handleFilterChange(setFilterClass)}>
                   <option value="">All classes</option>
@@ -175,7 +210,6 @@ const StudentTable = () => {
                 <ChevronDown size={14} color="#999" style={s.selectArrow} />
               </div>
 
-              {/* Status filter */}
               <div style={s.selectWrap}>
                 <select style={s.select} value={filterStatus} onChange={handleFilterChange(setFilterStatus)}>
                   <option value="">All statuses</option>
@@ -185,7 +219,6 @@ const StudentTable = () => {
                 <ChevronDown size={14} color="#999" style={s.selectArrow} />
               </div>
 
-              {/* ── Pagination — same row, pushed to the right ── */}
               <div style={s.pagination}>
                 <span style={s.pageInfo}>{page} / {totalPages}</span>
                 <button
@@ -205,19 +238,17 @@ const StudentTable = () => {
               </div>
             </div>
 
-            {/* ── Table ── */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto' }}>
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={{ ...s.th, width: '40px'  }}><input type="checkbox" /></th>
-                    <th style={{ ...s.th, width: '13%'   }}>ID</th>
-                    <th style={{ ...s.th, width: '22%'   }}>NAME</th>
-                    <th style={{ ...s.th, width: '10%'   }}>CLASS</th>
-                    <th style={{ ...s.th, width: '22%'   }}>EMAIL</th>
-                    <th style={{ ...s.th, width: '11%'   }}>STATUS</th>
-                    <th style={{ ...s.th, width: '9%'    }}>GENDER</th>
-                    {/* Fixed width for Actions to prevent clipping */}
+                    <th style={{ ...s.th, width: '40px' }}><input type="checkbox" /></th>
+                    <th style={{ ...s.th, width: '13%' }}>ID</th>
+                    <th style={{ ...s.th, width: '22%' }}>NAME</th>
+                    <th style={{ ...s.th, width: '10%' }}>CLASS</th>
+                    <th style={{ ...s.th, width: '22%' }}>EMAIL</th>
+                    <th style={{ ...s.th, width: '11%' }}>STATUS</th>
+                    <th style={{ ...s.th, width: '9%' }}>GENDER</th>
                     <th style={{ ...s.th, width: '100px', textAlign: 'center' }}>ACTIONS</th>
                   </tr>
                 </thead>
@@ -231,16 +262,10 @@ const StudentTable = () => {
                   ) : paginated.map((stu) => (
                     <tr key={stu.id} style={s.tr}>
                       <td style={s.td}><input type="checkbox" /></td>
-
-                      {/* ID */}
                       <td style={{ ...s.td, color: '#666', fontSize: 12 }}>{stu.username}</td>
-
-                      {/* Name */}
-                      <td style={s.td}>
+                      <td style={{ ...s.td, maxWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <span style={s.stuName}>{stu.full_name}</span>
                       </td>
-
-                      {/* Class */}
                       <td style={s.td}>
                         <span style={{
                           ...s.classBadge,
@@ -248,11 +273,9 @@ const StudentTable = () => {
                           color: avatarColor(stu.class_name || ''),
                         }}>{stu.class_name}</span>
                       </td>
-
-                      {/* Email */}
-                      <td style={{ ...s.td, fontSize: 13, color: '#444' }}>{stu.email}</td>
-
-                      {/* Status */}
+                      <td style={{ ...s.td, fontSize: 13, color: '#444', maxWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {stu.email}
+                      </td>
                       <td style={s.td}>
                         <span style={{
                           ...s.statusBadge,
@@ -266,23 +289,16 @@ const StudentTable = () => {
                           {stu.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-
-                      {/* Gender */}
                       <td style={{ ...s.td, fontSize: 13, color: '#555' }}>{stu.gender}</td>
-
-                      {/* Actions — fixed width 100px, no wrapping, no clipping */}
                       <td style={{ ...s.td, width: '100px', minWidth: '100px' }}>
                         <div style={s.actions}>
-                          <button style={s.actionBtn} title="View"
-                            onClick={() => navigate(`/admin/students/${stu.id}`)}>
+                          <button style={s.actionBtn} title="View" onClick={() => handleView(stu.id)}>
                             <Eye size={15} color="#bbb" />
                           </button>
-                          <button style={s.actionBtn} title="Edit"
-                            onClick={() => navigate(`/admin/students/${stu.id}/edit`)}>
+                          <button style={s.actionBtn} title="Edit" onClick={() => handleEdit(stu)}>
                             <Pencil size={15} color="#bbb" />
                           </button>
-                          <button style={s.actionBtn} title="Delete"
-                            onClick={() => handleDelete(stu.id)}>
+                          <button style={s.actionBtn} title="Delete" onClick={() => handleDelete(stu.id, stu.full_name)}>
                             <Trash2 size={15} color="#fca5a5" />
                           </button>
                         </div>
@@ -295,18 +311,42 @@ const StudentTable = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Thêm/Sửa */}
+      <StudentModal
+        visible={isModalOpen}
+        initialData={selectedStudent}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        onSuccess={() => {
+          setIsModalOpen(false);
+          setRefreshKey(prev => prev + 1);
+        }}
+      />
+
+      {/* Modal Chi tiết */}
+      <StudentDetailsModal
+        visible={isDetailsOpen}
+        data={selectedStudent}
+        onClose={() => {
+          setIsDetailsOpen(false);
+          setSelectedStudent(null);
+        }}
+      />
     </div>
   );
 };
 
 export default StudentTable;
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
+  /* Styles giữ nguyên như cũ của bạn */
   shell: {
     display: 'flex', height: '100vh', width: '100%',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: '#f9fafb', overflow: 'hidden',
+    background: '#fdf4f9', overflow: 'hidden',
   },
   sidebar: {
     width: 220, minWidth: 220, background: '#fff',
@@ -370,6 +410,7 @@ const s = {
     padding: '16px 24px', boxSizing: 'border-box',
     overflow: 'hidden',
     display: 'flex', flexDirection: 'column',
+    background: '#fdf4f9',
   },
   pageHeader: {
     display: 'flex', alignItems: 'flex-start',
@@ -435,7 +476,7 @@ const s = {
   /* Table */
   table: {
     width: '100%', borderCollapse: 'collapse', fontSize: 13,
-    /* tableLayout: fixed is avoided to ensure Action column is not squeezed */
+    tableLayout: 'fixed', minWidth: 780,
   },
   th: {
     padding: '9px 16px', textAlign: 'left', verticalAlign: 'middle',
@@ -459,7 +500,6 @@ const s = {
     whiteSpace: 'nowrap', flexShrink: 0,
   },
 
-  /* Actions — ensuring icons are fully visible */
   actions: {
     display: 'flex', alignItems: 'center', gap: 2,
     justifyContent: 'center', flexShrink: 0,
