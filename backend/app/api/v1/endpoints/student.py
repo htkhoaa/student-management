@@ -32,13 +32,13 @@ def get_all(
 
 @router.get("/{id}", response_model=StudentResponse)
 def get_by_id(id: int, db: Session = Depends(get_db),
-              current_user: User = Depends(role_required([UserRole.ADMIN]))):
+              current_user: User = Depends(role_required([UserRole.ADMIN, UserRole.STUDENT]))):
     service = StudentService(db)
     return service.get_by_id(id)
 
 @router.put("/{id}", response_model=StudentResponse)
 def update(id: int, payload: StudentUpdateRequest, db: Session = Depends(get_db),
-           current_user: User = Depends(role_required([UserRole.ADMIN]))):
+           current_user: User = Depends(role_required([UserRole.ADMIN, UserRole.STUDENT]))):
     service = StudentService(db)
     return service.update(id, payload)
 

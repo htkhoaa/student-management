@@ -25,7 +25,7 @@ class StudentCreateRequest(BaseModel):
 class StudentUpdateRequest(BaseModel):
     full_name: Optional[str] = Field(None, max_length=150, min_length=2)
     gender: Optional[GenderType] = None
-    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[0-9+]*$")
+    phone: Optional[str] = Field(None, max_length=20, min_length=10, pattern=r"^[0-9+]*$")
     class_id: Optional[int] = None
 
     class Config:

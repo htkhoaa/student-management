@@ -4,17 +4,16 @@ from app.core.security import verify_password, generate_access_token, get_passwo
 from app.schemas.auth import LoginRequest
 from app.repositories.user_repo import UserRepository
 from sqlalchemy.orm import Session
-
 from app.schemas.user import PasswordChangeRequest
 
 
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
-        self.repo = UserRepository(db)
+        self.user_repo = UserRepository(db)
 
     def login(self, req: LoginRequest):
-        user = self.repo.get_user_by_username(req.username)
+        user = self.user_repo.get_user_by_username(req.username)
         if not user or not verify_password(req.password, user.password_hash):
             raise AppException(ErrorCode.UNAUTHENTICATED)
 
@@ -26,7 +25,7 @@ class AuthService:
         }
 
     def change_password(self, payload: PasswordChangeRequest):
-        user = self.repo.get_user_by_username(payload.username)
+        user = self.user_repo.get_user_by_username(payload.username)
         if not user:
             raise AppException(ErrorCode.USER_NOT_FOUND)
 
