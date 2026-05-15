@@ -50,7 +50,7 @@ const AdminDashboard = () => {
   return (
     <div style={s.shell}>
 
-      {/* Sidebar - Integrated stable layout */}
+      {/* Sidebar */}
       <aside style={s.sidebar}>
         <div style={s.logoRow} onClick={() => navigate('/admin/dashboard')}>
           <div style={s.logoBadge}>SM</div>
@@ -153,18 +153,28 @@ const AdminDashboard = () => {
 
 export default AdminDashboard;
 
-// --- Cleaned Style Constants ---
 const s = {
   shell: {
-    display: 'flex', height: '100vh',
+    display: 'flex',
+    height: '100vh',
+    width: '100vw',         // ← full viewport width
+    position: 'fixed',      // ← thoát khỏi layout cha
+    top: 0,
+    left: 0,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: '#fdf4f9', overflow: 'hidden',
+    background: '#fdf4f9',
+    overflow: 'hidden',
+    zIndex: 100,
   },
   sidebar: {
-    width: 220, minWidth: 220, background: '#fdf4f9',
+    width: 220,
+    minWidth: 220,
+    background: '#fff',
     borderRight: '0.5px solid #e5e7eb',
-    display: 'flex', flexDirection: 'column',
-    position: 'fixed', height: '100vh', left: 0, zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    flexShrink: 0,           // ← không bị co lại
   },
   logoRow: {
     display: 'flex', alignItems: 'center', gap: 10,
@@ -200,8 +210,12 @@ const s = {
   userName: { fontSize: 13, fontWeight: 600, color: '#111' },
   userRole: { fontSize: 11, color: '#888' },
   main: {
-    flex: 1, marginLeft: 220, height: '100vh',
-    display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden',
+    flex: 1,
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    overflow: 'hidden',
   },
   topbar: {
     background: '#fff', borderBottom: '0.5px solid #e5e7eb',

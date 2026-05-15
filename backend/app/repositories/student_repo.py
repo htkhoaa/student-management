@@ -96,10 +96,14 @@ class StudentRepository:
     def get_students_by_class(self, class_id: int) -> List[Student]:
         query = (
             select(Student)
+            .join(Student.user)  # Cần join để lọc theo User.is_active
             .options(
                 joinedload(Student.user),
                 joinedload(Student.student_class)
             )
-            .where(Student.class_id == class_id)
+            .where(
+                Student.class_id == class_id,
+                User.is_active == True  # Lọc điều kiện bên bảng User
+            )
         )
         return self.db.scalars(query).unique().all()
