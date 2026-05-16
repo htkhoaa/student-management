@@ -55,9 +55,9 @@ const Login = () => {
         justifyContent: "center",
         alignItems: "center",
         background: "#fdf0f5",
-        zIndex: 9999,
       }}
     >
+        {contextHolder}
       <div
         style={{
           width: 400,

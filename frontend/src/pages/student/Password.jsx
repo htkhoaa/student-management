@@ -46,12 +46,14 @@ const Password = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+
 
   const studentId = localStorage.getItem('studentId');
 
   useEffect(() => {
     if (!studentId) {
-      message.error("Session expired. Please login again.");
+      messageApi.error("Session expired. Please login again.");
       navigate('/login');
       return;
     }
@@ -59,7 +61,7 @@ const Password = () => {
       .then(res => { setProfile(res.data); setLoading(false); })
       .catch(err => {
         console.error(err);
-        message.error('Failed to fetch profile data');
+        messageApi.error('Failed to fetch profile data');
         setLoading(false);
       });
   }, [studentId, navigate]);
@@ -72,12 +74,12 @@ const Password = () => {
       new_password: newPassword
     })
       .then(() => {
-        message.success('Password changed successfully');
+        messageApi.success('Password changed successfully');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       })
-      .catch(err => message.error(err.response?.data?.message || 'Failed to change password'))
+      .catch(err => messageApi.error(err.response?.data?.message || 'Failed to change password'))
       .finally(() => setIsUpdating(false));
   };
 
@@ -100,6 +102,7 @@ const Password = () => {
 
   return (
     <div style={s.shell}>
+      {contextHolder}
       {/* SIDEBAR */}
       <aside style={s.sidebar}>
         <div style={s.logoRow} onClick={() => navigate('/student/profile')}>
@@ -231,8 +234,9 @@ const s = {
     display: 'flex', height: '100vh', width: '100vw',
     position: 'fixed', top: 0, left: 0,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: '#fdf4f9', overflow: 'hidden', zIndex: 100,
+    background: '#fdf4f9', overflow: 'hidden'
   },
+
   sidebar: {
     width: 220, minWidth: 220, flexShrink: 0,
     background: '#fff', borderRight: '0.5px solid #e5e7eb',
