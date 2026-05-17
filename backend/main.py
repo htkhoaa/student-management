@@ -32,12 +32,6 @@ def create_app() -> FastAPI:
     return app
 
 app = create_app()
-
-# Health check endpoint for monitoring
-@app.get("/", tags=["Health Check"])
-async def root():
-    return {"status": "ok", "message": "API is running"}
-
 # Run server with uvicorn (only for development)
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
