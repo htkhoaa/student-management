@@ -98,7 +98,6 @@ const StudentTable = () => {
   };
 
   const handleView = (id) => {
-    setLoading(true);
     axios.get(`/api/v1/students/${id}`)
       .then(res => {
         setSelectedStudent(res.data);
