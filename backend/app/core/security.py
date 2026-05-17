@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from .config import settings
+from sqlalchemy import select
 import bcrypt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import HTTPException, Depends, status
+from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user_model import User
 from app.exceptions.base import AppException, ErrorCode
-from app.repositories.user_repo import get_user_by_username
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
@@ -51,7 +51,7 @@ async def get_current_user(
     except Exception:
         raise AppException(ErrorCode.INVALID_TOKEN)
 
-    user = get_user_by_username(db, user_identifier)
+    user = db.execute(select(User).where(User.username == user_identifier)).scalar_one_or_none()
     if user is None:
         raise AppException(ErrorCode.USER_NOT_FOUND)
     return user
