@@ -21,6 +21,23 @@ class StudentCreateRequest(BaseModel):
         }
 
 
+# 2. STUDENT UPDATE REQUEST
+class StudentUpdateRequest(BaseModel):
+    """DTO for updating profile details. All fields are optional."""
+    full_name: Optional[str] = Field(None, max_length=150, min_length=2)
+    gender: Optional[GenderType] = None
+    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[0-9+]*$")
+    class_id: Optional[int] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "full_name": "Jane Doe",
+                "phone": "0905999999"
+            }
+        }
+
+
 # 3. STUDENT RESPONSE
 class StudentResponse(BaseModel):
     id: int
