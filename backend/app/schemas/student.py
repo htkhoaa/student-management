@@ -27,6 +27,7 @@ class StudentUpdateRequest(BaseModel):
     gender: Optional[GenderType] = None
     phone: Optional[str] = Field(None, max_length=20, min_length=10, pattern=r"^[0-9+]*$")
     class_id: Optional[int] = None
+    is_active: Optional[bool] = None
 
     class Config:
         json_schema_extra = {
