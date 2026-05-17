@@ -3,84 +3,93 @@ import { Spin, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, GitBranch, Settings,
-  LogOut, Bell, UserPlus, Search, Eye, Pencil, Trash2, ChevronDown,
+  LogOut, Bell, UserPlus, Search, Eye, Pencil, Trash2, ChevronDown, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import axios from '../../api/axiosConfig';
 
-// ─── Nav ──────────────────────────────────────────────────────────────────────
+// ─── Navigation Configuration ────────────────────────────────────────────────
 const NAV_MANAGE = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-  { key: 'students',  label: 'Students',  icon: Users,            path: '/admin/students'  },
-  { key: 'classes',   label: 'Classes',   icon: GitBranch,        path: '/admin/classes'   },
+  { key: 'students',  label: 'Students',  icon: Users,            path: '/admin/student'  },
+  { key: 'classes',   label: 'Classes',   icon: GitBranch,        path: '/admin/class'   },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const getInitials = (name = '') =>
-  name.split(' ').slice(-2).map(w => w[0]).join('').toUpperCase();
-
+// ─── Helper Functions ────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   '#f472b6','#fb7185','#a78bfa','#38bdf8','#34d399',
   '#fb923c','#818cf8','#2dd4bf','#9f7aea',
 ];
+
 const avatarColor = (id = '') =>
   AVATAR_COLORS[id.charCodeAt(id.length - 1) % AVATAR_COLORS.length];
 
-// ─── Component ────────────────────────────────────────────────────────────────
-const StudentsPage = () => {
+const PAGE_SIZE = 10;
+
+const StudentTable = () => {
   const navigate = useNavigate();
 
-  // API state
-  const [students, setStudents]     = useState([]);
-  const [classes,  setClasses]      = useState([]);
-  const [adminName, setAdminName]   = useState('Admin');
-  const [loading, setLoading]       = useState(true);
+  const [students, setStudents]      = useState([]);
+  const [classes,  setClasses]       = useState([]);
+  const [adminName, setAdminName]    = useState('Admin');
+  const [loading, setLoading]        = useState(true);
+  const [total, setTotal]            = useState(0);
 
-  // Filter / search state
-  const [search,      setSearch]      = useState('');
-  const [filterClass, setFilterClass] = useState('');
-  const [filterStatus,setFilterStatus]= useState('');
+  const [search,       setSearch]       = useState('');
+  const [filterClass,  setFilterClass]  = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [page, setPage]                 = useState(1);
 
-  // ── API calls ───────────────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
-      axios.get('/api/v1/students'),
+      axios.get('/api/v1/students?limit=1000'),
       axios.get('/api/v1/classes'),
       axios.get('/api/v1/dashboard/stats'),
     ])
       .then(([stuRes, clsRes, statsRes]) => {
-        setStudents(stuRes.data || []);
-        setClasses(clsRes.data  || []);
+        setStudents(stuRes.data.items || []);
+        setTotal(stuRes.data.total || 0);
+        setClasses(clsRes.data || []);
         setAdminName(statsRes.data?.admin_name || 'Admin');
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
-        message.error('Failed to fetch students');
+        message.error('Failed to fetch data from server');
         setLoading(false);
       });
   }, []);
 
-  // ── Filtered list ────────────────────────────────────────────────────────────
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
       s.full_name?.toLowerCase().includes(q) ||
-      s.student_id?.toLowerCase().includes(q) ||
+      s.username?.toLowerCase().includes(q) ||
       s.email?.toLowerCase().includes(q);
     const matchClass  = !filterClass  || s.class_name === filterClass;
-    const matchStatus = !filterStatus || s.status     === filterStatus;
+    const matchStatus = !filterStatus || String(s.is_active) === filterStatus;
     return matchSearch && matchClass && matchStatus;
   });
 
+  // Reset to page 1 when filters change
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setPage(1);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const adminInitial = adminName.charAt(0).toUpperCase();
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleDelete = (id) => {
-    if (!window.confirm('Delete this student?')) return;
+    if (!window.confirm('Are you sure you want to deactivate this student?')) return;
     axios.delete(`/api/v1/students/${id}`)
-      .then(() => setStudents(prev => prev.filter(s => s.student_id !== id)))
-      .catch(() => message.error('Delete failed'));
+      .then(() => {
+        message.success('Student deactivated');
+        setStudents(prev => prev.map(s => s.id === id ? { ...s, is_active: false } : s));
+      })
+      .catch(() => message.error('Action failed'));
   };
 
   if (loading) return (
@@ -91,16 +100,12 @@ const StudentsPage = () => {
 
   return (
     <div style={s.shell}>
-
-      {/* ── SIDEBAR ──────────────────────────────────────────────────────────── */}
+      {/* SIDEBAR */}
       <aside style={s.sidebar}>
-        {/* Logo */}
         <div style={s.logoRow} onClick={() => navigate('/admin/dashboard')}>
           <div style={s.logoBadge}>SM</div>
           <span style={s.logoName}>Scholar</span>
         </div>
-
-        {/* Manage */}
         <p style={s.sectionLabel}>Manage</p>
         {NAV_MANAGE.map(({ key, label, icon: Icon, path }) => (
           <button
@@ -112,15 +117,6 @@ const StudentsPage = () => {
             {label}
           </button>
         ))}
-
-        {/* Account */}
-        <p style={s.sectionLabel}>Account</p>
-        <button style={s.navItem} onClick={() => navigate('/admin/settings')}>
-          <Settings size={17} />
-          Settings
-        </button>
-
-        {/* Footer */}
         <div style={s.sidebarFooter}>
           <div style={s.avatar}>{adminInitial}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -134,139 +130,123 @@ const StudentsPage = () => {
         </div>
       </aside>
 
-      {/* ── MAIN ─────────────────────────────────────────────────────────────── */}
+      {/* MAIN CONTENT */}
       <div style={s.main}>
-        {/* Topbar */}
         <div style={s.topbar}>
           <div>
-            <div style={s.topbarTitle}>Students</div>
-            <div style={s.topbarSub}>Academic year 2024–2025</div>
+            <div style={s.topbarSub}>Academic year 2025–2026</div>
           </div>
-          <button style={s.bellBtn} aria-label="Notifications">
+          <button style={s.bellBtn}>
             <Bell size={18} color="#555" />
           </button>
         </div>
 
-        {/* Content */}
         <div style={s.content}>
-          {/* Page header */}
           <div style={s.pageHeader}>
             <div>
-              <h1 style={s.pageTitle}>Students</h1>
-              <p style={s.pageCount}>{filtered.length} of {students.length} students</p>
+              <h1 style={s.pageTitle}>Student</h1>
+              <p style={s.pageCount}>Showing {filtered.length} of {total} total students</p>
             </div>
-            <button style={s.btnRegister} onClick={() => navigate('/admin/students/add')}>
-              <UserPlus size={15} /> Register student
+            <button style={s.btnRegister} onClick={() => navigate('/admin/student/create')}>
+              <UserPlus size={15} /> Add student
             </button>
           </div>
 
-          {/* Table card */}
           <div style={s.tableCard}>
-            {/* Filters */}
+            {/* ── Filter Row + Pagination ── */}
             <div style={s.filterRow}>
               {/* Search */}
               <div style={s.searchBox}>
-                <Search size={15} color="#bbb" style={{ flexShrink: 0 }} />
+                <Search size={15} color="#bbb" />
                 <input
                   style={s.searchInput}
-                  placeholder="Search by name, ID, email..."
+                  placeholder="Search name, username, email..."
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
                 />
               </div>
 
               {/* Class filter */}
               <div style={s.selectWrap}>
-                <select
-                  style={s.select}
-                  value={filterClass}
-                  onChange={e => setFilterClass(e.target.value)}
-                >
+                <select style={s.select} value={filterClass} onChange={handleFilterChange(setFilterClass)}>
                   <option value="">All classes</option>
-                  {classes.map(c => (
-                    <option key={c.class_name} value={c.class_name}>{c.class_name}</option>
-                  ))}
+                  {classes.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
                 <ChevronDown size={14} color="#999" style={s.selectArrow} />
               </div>
 
               {/* Status filter */}
               <div style={s.selectWrap}>
-                <select
-                  style={s.select}
-                  value={filterStatus}
-                  onChange={e => setFilterStatus(e.target.value)}
-                >
+                <select style={s.select} value={filterStatus} onChange={handleFilterChange(setFilterStatus)}>
                   <option value="">All statuses</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
                 </select>
                 <ChevronDown size={14} color="#999" style={s.selectArrow} />
               </div>
+
+              {/* ── Pagination — same row, pushed to the right ── */}
+              <div style={s.pagination}>
+                <span style={s.pageInfo}>{page} / {totalPages}</span>
+                <button
+                  style={{ ...s.pageBtn, opacity: page <= 1 ? 0.35 : 1 }}
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => p - 1)}
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <button
+                  style={{ ...s.pageBtn, opacity: page >= totalPages ? 0.35 : 1 }}
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
 
-            {/* Table */}
-            <div style={{ overflowX: 'auto' }}>
+            {/* ── Table ── */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={{ ...s.th, width: 36 }}>
-                      <input type="checkbox" style={{ cursor: 'pointer' }} />
-                    </th>
-                    <th style={s.th}>ID ↕</th>
-                    <th style={s.th}>Name ↑</th>
-                    <th style={s.th}>Class ↕</th>
-                    <th style={s.th}>Email</th>
-                    <th style={s.th}>Status ↕</th>
-                    <th style={s.th}>Gender</th>
-                    <th style={s.th}>Phone</th>
-                    <th style={{ ...s.th, width: 90 }}></th>
+                    <th style={{ ...s.th, width: '40px'  }}><input type="checkbox" /></th>
+                    <th style={{ ...s.th, width: '13%'   }}>ID</th>
+                    <th style={{ ...s.th, width: '22%'   }}>NAME</th>
+                    <th style={{ ...s.th, width: '10%'   }}>CLASS</th>
+                    <th style={{ ...s.th, width: '22%'   }}>EMAIL</th>
+                    <th style={{ ...s.th, width: '11%'   }}>STATUS</th>
+                    <th style={{ ...s.th, width: '9%'    }}>GENDER</th>
+                    {/* Fixed width for Actions to prevent clipping */}
+                    <th style={{ ...s.th, width: '100px', textAlign: 'center' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={9} style={{ textAlign: 'center', padding: '40px 0', color: '#bbb', fontSize: 14 }}>
+                      <td colSpan={8} style={{ ...s.td, textAlign: 'center', padding: '40px', color: '#bbb' }}>
                         No students found
                       </td>
                     </tr>
-                  ) : filtered.map((stu) => (
-                    <tr key={stu.student_id} style={s.tr}>
-                      {/* Checkbox */}
-                      <td style={s.td}>
-                        <input type="checkbox" style={{ cursor: 'pointer' }} />
-                      </td>
+                  ) : paginated.map((stu) => (
+                    <tr key={stu.id} style={s.tr}>
+                      <td style={s.td}><input type="checkbox" /></td>
 
                       {/* ID */}
-                      <td style={{ ...s.td, color: '#555', fontSize: 13 }}>{stu.student_id}</td>
+                      <td style={{ ...s.td, color: '#666', fontSize: 12 }}>{stu.username}</td>
 
-                      {/* Name + avatar */}
+                      {/* Name */}
                       <td style={s.td}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{
-                            ...s.stuAvatar,
-                            background: avatarColor(stu.student_id),
-                          }}>
-                            {getInitials(stu.full_name)}
-                          </div>
-                          <div>
-                            <div style={s.stuName}>{stu.full_name}</div>
-                            <div style={s.stuSub}>
-                              {stu.gender} · {stu.date_of_birth}
-                            </div>
-                          </div>
-                        </div>
+                        <span style={s.stuName}>{stu.full_name}</span>
                       </td>
 
-                      {/* Class badge */}
+                      {/* Class */}
                       <td style={s.td}>
                         <span style={{
                           ...s.classBadge,
                           background: avatarColor(stu.class_name || '') + '22',
                           color: avatarColor(stu.class_name || ''),
-                        }}>
-                          {stu.class_name}
-                        </span>
+                        }}>{stu.class_name}</span>
                       </td>
 
                       {/* Email */}
@@ -276,38 +256,34 @@ const StudentsPage = () => {
                       <td style={s.td}>
                         <span style={{
                           ...s.statusBadge,
-                          background: stu.status === 'Active' ? '#dcfce7' : '#fee2e2',
-                          color:      stu.status === 'Active' ? '#16a34a' : '#dc2626',
+                          background: stu.is_active ? '#dcfce7' : '#fee2e2',
+                          color:      stu.is_active ? '#16a34a' : '#dc2626',
                         }}>
                           <span style={{
-                            width: 6, height: 6, borderRadius: '50%',
-                            background: stu.status === 'Active' ? '#16a34a' : '#dc2626',
-                            display: 'inline-block',
+                            width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                            background: stu.is_active ? '#16a34a' : '#dc2626',
                           }} />
-                          {stu.status}
+                          {stu.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
 
                       {/* Gender */}
                       <td style={{ ...s.td, fontSize: 13, color: '#555' }}>{stu.gender}</td>
 
-                      {/* Phone */}
-                      <td style={{ ...s.td, fontSize: 13, color: '#555' }}>{stu.phone}</td>
-
-                      {/* Actions */}
-                      <td style={s.td}>
+                      {/* Actions — fixed width 100px, no wrapping, no clipping */}
+                      <td style={{ ...s.td, width: '100px', minWidth: '100px' }}>
                         <div style={s.actions}>
                           <button style={s.actionBtn} title="View"
-                            onClick={() => navigate(`/admin/students/${stu.student_id}`)}>
-                            <Eye size={15} color="#aaa" />
+                            onClick={() => navigate(`/admin/students/${stu.id}`)}>
+                            <Eye size={15} color="#bbb" />
                           </button>
                           <button style={s.actionBtn} title="Edit"
-                            onClick={() => navigate(`/admin/students/${stu.student_id}/edit`)}>
-                            <Pencil size={15} color="#aaa" />
+                            onClick={() => navigate(`/admin/students/${stu.id}/edit`)}>
+                            <Pencil size={15} color="#bbb" />
                           </button>
                           <button style={s.actionBtn} title="Delete"
-                            onClick={() => handleDelete(stu.student_id)}>
-                            <Trash2 size={15} color="#f87171" />
+                            onClick={() => handleDelete(stu.id)}>
+                            <Trash2 size={15} color="#fca5a5" />
                           </button>
                         </div>
                       </td>
@@ -323,17 +299,15 @@ const StudentsPage = () => {
   );
 };
 
-export default StudentsPage;
+export default StudentTable;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
   shell: {
-    display: 'flex', height: '100vh',
+    display: 'flex', height: '100vh', width: '100%',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     background: '#f9fafb', overflow: 'hidden',
   },
-
-  /* Sidebar — dùng lại y hệt Dashboard */
   sidebar: {
     width: 220, minWidth: 220, background: '#fff',
     borderRight: '0.5px solid #e5e7eb',
@@ -347,7 +321,7 @@ const s = {
   logoBadge: {
     width: 36, height: 36, borderRadius: 8, background: '#e91e8c',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0,
+    color: '#fff', fontWeight: 700, fontSize: 13,
   },
   logoName: { fontWeight: 700, fontSize: 16, color: '#111' },
   sectionLabel: {
@@ -369,19 +343,21 @@ const s = {
   avatar: {
     width: 32, height: 32, borderRadius: '50%', background: '#fce8f3',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 13, fontWeight: 700, color: '#e91e8c', flexShrink: 0,
+    fontSize: 13, fontWeight: 700, color: '#e91e8c',
   },
   userName: { fontSize: 13, fontWeight: 600, color: '#111' },
   userRole: { fontSize: 11, color: '#888' },
 
-  /* Main */
-  main: { flex: 1, marginLeft: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  main: {
+    flex: 1, marginLeft: 220, height: '100vh',
+    display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden',
+  },
   topbar: {
     background: '#fff', borderBottom: '0.5px solid #e5e7eb',
-    padding: '14px 40px', display: 'flex', alignItems: 'center',
-    justifyContent: 'space-between', flexShrink: 0,
+    padding: '16px 24px',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
   },
-  topbarTitle: { fontSize: 17, fontWeight: 600, color: '#111', margin: 0 },
+  topbarTitle: { fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em'},
   topbarSub: { fontSize: 12, color: '#888', marginTop: 2 },
   bellBtn: {
     width: 36, height: 36, borderRadius: '50%',
@@ -389,84 +365,110 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', background: 'transparent',
   },
-  content: { flex: 1, overflowY: 'auto', padding: '36px 40px' },
-
-  /* Page header */
+  content: {
+    flex: 1, minHeight: 0, width: '100%',
+    padding: '16px 24px', boxSizing: 'border-box',
+    overflow: 'hidden',
+    display: 'flex', flexDirection: 'column',
+  },
   pageHeader: {
     display: 'flex', alignItems: 'flex-start',
-    justifyContent: 'space-between', marginBottom: 24, gap: 16,
+    justifyContent: 'space-between', marginBottom: 12, gap: 16,
   },
-  pageTitle: { fontSize: 24, fontWeight: 700, color: '#111', margin: 0 },
-  pageCount: { fontSize: 13, color: '#888', marginTop: 4, marginBottom: 0 },
+  pageTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em',lineHeight: '1.2'},
+  pageCount: { fontSize: 12, color: '#888', marginTop: 3 },
   btnRegister: {
     display: 'flex', alignItems: 'center', gap: 7,
-    padding: '10px 20px', fontSize: 14,
+    padding: '8px 16px', fontSize: 13,
     border: 'none', borderRadius: 10,
     background: '#e91e8c', color: '#fff',
-    cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+    cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
   },
 
-  /* Table card */
   tableCard: {
     background: '#fff', border: '0.5px solid #e5e7eb',
-    borderRadius: 14, overflow: 'hidden',
+    borderRadius: 14, width: '100%',
+    flex: 1, minHeight: 0,
+    display: 'flex', flexDirection: 'column', overflow: 'hidden',
   },
 
-  /* Filters */
+  /* Filter row */
   filterRow: {
     display: 'flex', alignItems: 'center', gap: 10,
-    padding: '16px 20px', borderBottom: '0.5px solid #f0f0f0',
+    padding: '10px 16px', borderBottom: '0.5px solid #f0f0f0',
+    flexWrap: 'nowrap',
   },
   searchBox: {
     display: 'flex', alignItems: 'center', gap: 8,
     border: '0.5px solid #e5e7eb', borderRadius: 8,
-    padding: '8px 12px', flex: 1, maxWidth: 320, background: '#fff',
+    padding: '6px 12px', flex: 1, maxWidth: 280, minWidth: 160,
   },
   searchInput: {
     border: 'none', outline: 'none', fontSize: 13,
     color: '#333', background: 'transparent', width: '100%',
   },
-  selectWrap: { position: 'relative', display: 'flex', alignItems: 'center' },
+  selectWrap: { position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 },
   select: {
     appearance: 'none', border: '0.5px solid #e5e7eb',
-    borderRadius: 8, padding: '8px 32px 8px 12px',
-    fontSize: 13, color: '#555', background: '#fff',
-    cursor: 'pointer', outline: 'none',
-  },
-  selectArrow: { position: 'absolute', right: 10, pointerEvents: 'none' },
-
-  /* Table */
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  th: {
-    padding: '12px 16px', textAlign: 'left',
-    fontSize: 12, fontWeight: 600, color: '#e91e8c',
-    borderBottom: '0.5px solid #f0f0f0', whiteSpace: 'nowrap',
+    borderRadius: 8, padding: '6px 28px 6px 12px',
+    fontSize: 13, color: '#555', cursor: 'pointer', outline: 'none',
     background: '#fff',
   },
-  tr: { borderBottom: '0.5px solid #f9f9f9', transition: 'background 0.1s' },
-  td: { padding: '14px 16px', verticalAlign: 'middle' },
+  selectArrow: { position: 'absolute', right: 8, pointerEvents: 'none' },
 
-  /* Row elements */
-  stuAvatar: {
-    width: 34, height: 34, borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
+  /* Pagination — pushed to right using marginLeft: auto */
+  pagination: {
+    display: 'flex', alignItems: 'center', gap: 4,
+    marginLeft: 'auto', flexShrink: 0,
   },
+  pageInfo: {
+    fontSize: 12, color: '#888', minWidth: 40, textAlign: 'center',
+  },
+  pageBtn: {
+    width: 30, height: 30, borderRadius: 7,
+    border: '0.5px solid #e5e7eb', background: '#fff',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', color: '#555',
+    transition: 'background 0.1s',
+  },
+
+  /* Table */
+  table: {
+    width: '100%', borderCollapse: 'collapse', fontSize: 13,
+    /* tableLayout: fixed is avoided to ensure Action column is not squeezed */
+  },
+  th: {
+    padding: '9px 16px', textAlign: 'left', verticalAlign: 'middle',
+    fontSize: 12, fontWeight: 600, color: '#e91e8c',
+    borderBottom: '1px solid #f0f0f0', whiteSpace: 'nowrap', background: '#fff',
+  },
+  tr: { borderBottom: '0.5px solid #f5f5f5' },
+  td: {
+    padding: '7px 16px', verticalAlign: 'middle',
+    textAlign: 'left', whiteSpace: 'nowrap',
+  },
+
   stuName: { fontSize: 13, fontWeight: 600, color: '#111' },
-  stuSub: { fontSize: 11, color: '#aaa', marginTop: 1 },
   classBadge: {
-    display: 'inline-block', padding: '3px 10px',
+    display: 'inline-block', padding: '3px 9px',
     borderRadius: 6, fontSize: 12, fontWeight: 600,
   },
   statusBadge: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+    whiteSpace: 'nowrap', flexShrink: 0,
   },
-  actions: { display: 'flex', alignItems: 'center', gap: 4 },
+
+  /* Actions — ensuring icons are fully visible */
+  actions: {
+    display: 'flex', alignItems: 'center', gap: 2,
+    justifyContent: 'center', flexShrink: 0,
+    overflow: 'visible',
+  },
   actionBtn: {
     width: 28, height: 28, borderRadius: 6,
     border: 'none', background: 'transparent',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer',
+    cursor: 'pointer', flexShrink: 0,
   },
 };
