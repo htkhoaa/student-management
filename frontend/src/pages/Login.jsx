@@ -2,26 +2,39 @@ import React, { useState } from "react";
 import { Form, Input, Button, Typography, message } from "antd";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { UserRole } from "../constants/auth.constant.js";
 
-const { Title } = Typography;
+const { Title, Text: AntText } = Typography;
 
 const Login = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState("Administrator");
+  const [role, setRole] = useState("Admin");
+  const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {
+    setLoading(true);
     try {
-      const response = await axios.post("http://localhost:8000/login", {
-        ...values,
-        role,
+      const response = await axios.post("http://localhost:8000/api/v1/auth/login", {
+        username: values.username,
+        password: values.password,
       });
-      localStorage.setItem("token", response.data.access_token);
+      const { access_token, user } = response.data;
+      const userRole = user.role;
+
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("role", userRole);
       message.success("Login successfully!");
-      navigate("/dashboard");
+
+      if (userRole === UserRole.ADMIN) {
+        navigate("/admin/dashboard");
+      } else if (userRole === UserRole.STUDENT) {
+        navigate("/student/profile");
+      }
     } catch (error) {
-      const errorMsg =
-        error.response?.data?.detail || "Connecting failed to server!";
+      const errorMsg = error.response?.data?.message || "Invalid username or password!";
       message.error(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -31,50 +44,51 @@ const Login = () => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        height: "100vh",
-        background: "#fdf0f5",
+        minHeight: "100vh",
+        background: "#fdf0f5", // Màu hồng nhạt đồng bộ với thiết kế
       }}
     >
       <div
         style={{
-          width: 420,
+          width: 400,
           background: "#fff",
-          borderRadius: 12,
-          padding: "40px 36px",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+          borderRadius: 16,
+          padding: "48px 40px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
         }}
       >
-        {/* Header */}
-        <Title level={3} style={{ marginBottom: 4 }}>
-          Welcome back
-        </Title>
-        <p style={{ color: "#8c8c8c", marginBottom: 24 }}>
-          Sign in to continue to your portal
-        </p>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <Title level={2} style={{ marginBottom: 8, color: "#1a1a1a" }}>
+            Welcome back
+          </Title>
+          <AntText type="secondary">Sign in to continue to your portal</AntText>
+        </div>
 
-        {/* Tab Role */}
         <div
           style={{
             display: "flex",
-            background: "#f5f5f5",
-            borderRadius: 8,
+            background: "#f0f0f0",
+            borderRadius: 10,
             padding: 4,
-            marginBottom: 24,
+            marginBottom: 32,
           }}
         >
-          {["Administrator", "Student"].map((r) => (
+          {["Admin", "Student"].map((r) => (
             <button
               key={r}
+              type="button"
               onClick={() => setRole(r)}
               style={{
                 flex: 1,
-                padding: "8px 0",
+                padding: "10px 0",
                 border: "none",
-                borderRadius: 6,
+                borderRadius: 8,
                 cursor: "pointer",
+                transition: "all 0.3s",
                 background: role === r ? "#fff" : "transparent",
-                fontWeight: role === r ? 600 : 400,
-                boxShadow: role === r ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+                color: role === r ? "#e91e8c" : "#595959",
+                fontWeight: role === r ? 700 : 500,
+                boxShadow: role === r ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
               }}
             >
               {r}
@@ -82,43 +96,50 @@ const Login = () => {
           ))}
         </div>
 
-        {/* Form */}
-        <Form name="login_form" onFinish={onFinish} layout="vertical">
+        <Form
+          name="login_form"
+          onFinish={onFinish}
+          layout="vertical"
+          requiredMark={false}
+        >
           <Form.Item
-            label="Username"
+            label={<AntText strong>Username</AntText>}
             name="username"
-            rules={[{ required: true, message: "Username is required!" }]}
+            rules={[{ required: true, message: "Please enter your username!" }]}
           >
             <Input
-              placeholder="admin"
+              placeholder="Enter your username"
               size="large"
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 8, padding: "10px 12px" }}
             />
           </Form.Item>
 
           <Form.Item
-            label="Password"
+            label={<AntText strong>Password</AntText>}
             name="password"
-            rules={[{ required: true, message: "Password is required!" }]}
+            rules={[{ required: true, message: "Please enter your password!" }]}
           >
             <Input.Password
-              placeholder="••••••"
+              placeholder="••••••••"
               size="large"
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 8, padding: "10px 12px" }}
             />
           </Form.Item>
 
-          <Form.Item>
+          <Form.Item style={{ marginTop: 40 }}>
             <Button
               type="primary"
               htmlType="submit"
               size="large"
               block
+              loading={loading}
               style={{
                 background: "#e91e8c",
-                border: "none",
+                borderColor: "#e91e8c",
+                height: 48,
                 borderRadius: 8,
                 fontWeight: 600,
+                fontSize: 16,
               }}
             >
               Sign in as {role}
@@ -126,26 +147,10 @@ const Login = () => {
           </Form.Item>
         </Form>
 
-        {/* Demo accounts */}
-        <div
-          style={{
-            background: "#f0f7ff",
-            borderRadius: 8,
-            padding: "10px 14px",
-            marginBottom: 16,
-            fontSize: 13,
-          }}
-        >
-          <strong>Demo accounts</strong>
-          <br />
-          <span>
-            <strong>admin</strong> / admin · <strong>student</strong> / student
-          </span>
-        </div>
-
-        {/* Footer */}
-        <div style={{ textAlign: "center", fontSize: 13, color: "#8c8c8c" }}>
-          Need help? Contact <a href="mailto:it@school.edu">it@school.edu</a>
+        <div style={{ textAlign: "center", marginTop: 24 }}>
+          <AntText style={{ fontSize: 13, color: "#bfbfbf" }}>
+            Need help? Contact <a href="mailto:it@school.edu" style={{ color: "#e91e8c" }}>IT Department</a>
+          </AntText>
         </div>
       </div>
     </div>
