@@ -28,7 +28,6 @@ const Login = () => {
       if (userRole === UserRole.ADMIN) {
         navigate("/admin/dashboard");
       } else if (userRole === UserRole.STUDENT) {
-        navigate("/student/profile");
       }
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Invalid username or password!";

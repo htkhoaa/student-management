@@ -25,6 +25,7 @@ def get_password_hash(plain_password: str) -> str:
     hashed = bcrypt.hashpw(pwd_bytes, salt)
     return hashed.decode('utf-8')
 
+
 def generate_access_token(user: User) -> str:
     expire = datetime.now(timezone.utc) + timedelta(seconds=settings.JWT_TOKEN_EXPIRATION)
     to_encode = {
@@ -33,6 +34,7 @@ def generate_access_token(user: User) -> str:
         "role": user.role
     }
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
 
 
 security_scheme = HTTPBearer()

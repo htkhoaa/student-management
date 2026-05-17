@@ -10,6 +10,7 @@ def login(db: Session, req: LoginRequest):
     # 1. Validate whether user exists and password verified.
     if not user or not verify_password(req.password, user.password_hash):
         raise AppException(ErrorCode.UNAUTHENTICATED)
+
     # 3. Generate token
     token = generate_access_token(user)
     return {
