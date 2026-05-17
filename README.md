@@ -43,7 +43,7 @@ docker-compose up --build
 *  🐳 `docker-compose.yml`: Configuration for App and Database services.
 *  🏗️ `requirements.txt`: Python dependencies.
 *  📋 `Dockerfile`: Build instructions for the Docker image.
-
+    
 ## 📝 Database Configuration
 1. Copy the environment template:
    ```bash
