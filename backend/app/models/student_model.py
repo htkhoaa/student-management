@@ -1,6 +1,10 @@
 from sqlalchemy import Column, String, ForeignKey, Enum, Integer
 from .base_model import Base, TimestampMixin
 from .constant import GenderType
+from sqlalchemy.orm import relationship
+
+STUDENT_ACTIVE = True
+STUDENT_INACTIVE = False
 
 
 class Student(Base, TimestampMixin):
@@ -12,3 +16,6 @@ class Student(Base, TimestampMixin):
     phone = Column(String(20), nullable=True)
 
     class_id = Column(Integer, ForeignKey("classes.id", ondelete="RESTRICT"), nullable=False)
+
+    user = relationship("User", back_populates="student", uselist=False)
+    student_class = relationship("Class", back_populates="students")
