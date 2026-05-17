@@ -1,20 +1,41 @@
 from app.exceptions.base import AppException
 from app.exceptions.error_code import ErrorCode
-from app.core.security import verify_password, generate_access_token
+from app.core.security import verify_password, generate_access_token, get_password_hash
 from app.schemas.auth import LoginRequest
-from app.repositories.user_repo import get_user_by_username
+from app.repositories.user_repo import UserRepository
 from sqlalchemy.orm import Session
 
-def login(db: Session, req: LoginRequest):
-    user = get_user_by_username(db, req.username)
-    # 1. Validate whether user exists and password verified.
-    if not user or not verify_password(req.password, user.password_hash):
-        raise AppException(ErrorCode.UNAUTHENTICATED)
+from app.schemas.user import PasswordChangeRequest
 
-    # 3. Generate token
-    token = generate_access_token(user)
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": user
-    }
+
+class AuthService:
+    def __init__(self, db: Session):
+        self.db = db
+        self.repo = UserRepository(db)
+
+    def login(self, req: LoginRequest):
+        user = self.repo.get_user_by_username(req.username)
+        if not user or not verify_password(req.password, user.password_hash):
+            raise AppException(ErrorCode.UNAUTHENTICATED)
+
+        token = generate_access_token(user)
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": user
+        }
+
+    def change_password(self, payload: PasswordChangeRequest):
+        user = self.repo.get_user_by_username(payload.username)
+        if not user:
+            raise AppException(ErrorCode.USER_NOT_FOUND)
+
+        if not verify_password(payload.old_password, user.password_hash):
+            raise AppException(ErrorCode.CREDENTIALS_VALIDATION_FAILED, "Invalid old password")
+
+        try:
+            user.password_hash = get_password_hash(payload.new_password)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            raise AppException(ErrorCode.INTERNAL_SERVER_ERROR, f"Failed to update new password: {str(e)}")
