@@ -21,7 +21,6 @@ class StudentRepository:
         user["student_id"] = new_student.id
         new_user = User(**user)
         self.db.add(new_user)
-
         self.db.commit()
         self.db.refresh(new_student)
         return new_student
@@ -29,6 +28,9 @@ class StudentRepository:
     def get_username_by_id(self, student_id: int) -> Optional[str]:
         query = select(User.username).where(User.student_id == student_id)
         return self.db.scalars(query).first()
+
+    def get_by_id(self, student_id: int) -> Optional[Student]:
+        return self.db.get(Student, student_id)
 
     def get_all_with_details(
             self, skip: int, limit: int, class_id: Optional[int], is_active: Optional[bool]
@@ -47,12 +49,15 @@ class StudentRepository:
 
     def count_all(self, class_id: Optional[int], is_active: Optional[bool]) -> int:
         query = select(func.count(Student.id)).outerjoin(User, User.student_id == Student.id)
-        if class_id is not None: query = query.where(Student.class_id == class_id)
-        if is_active is not None: query = query.where(User.is_active == is_active)
+        if class_id is not None:
+            query = query.where(Student.class_id == class_id)
+        if is_active is not None:
+            query = query.where(User.is_active == is_active)
         return self.db.execute(query).scalar() or 0
 
     def get_student_profile(self, student_id: int):
         query = (
+
             select(Student)
             .options(
                 joinedload(Student.user),
