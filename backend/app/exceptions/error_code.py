@@ -16,6 +16,8 @@ class ErrorCode(Enum):
     UNCATEGORIZED_EXCEPTION = (9999, "Uncategorized system error", status.HTTP_500_INTERNAL_SERVER_ERROR)
     VALIDATION_ERROR = (8888, "Invalid input data", status.HTTP_422_UNPROCESSABLE_ENTITY)
 
+    INTERNAL_SERVER_ERROR = (5555, "Error System", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def __init__(self, code, message, status_code):
         self.code = code
         self.message = message

@@ -9,7 +9,6 @@ from app.models.user_model import User
 from app.models.constant import UserRole
 
 router = APIRouter()
-
 @router.post(
     "/login",
     response_model=AuthResponse,
