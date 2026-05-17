@@ -2,12 +2,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import { Button, Typography, Space } from 'antd';
 import Login from './pages/Login';
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
+import StudentTable from "./pages/admin/Student.jsx";
+import AdminClass from "./pages/admin/Class.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-
-const { Title } = Typography;
 import Profile from "./pages/Profile.jsx";
 import RoleDashboard from "./components/RoleDashboard.jsx";
 import { UserRole } from "./constants/auth.constant.js";
+const { Title } = Typography;
 
 function App() {
   return (
@@ -28,6 +29,24 @@ function App() {
           element={
             <ProtectedRoute allowedRole={UserRole.ADMIN}>
               <AdminDashboard role={UserRole.ADMIN}/>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/student"
+          element={
+            <ProtectedRoute allowedRole={UserRole.ADMIN}>
+              <StudentTable role={UserRole.ADMIN}/>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/class"
+          element={
+            <ProtectedRoute allowedRole={UserRole.ADMIN}>
+              <AdminClass role={UserRole.ADMIN}/>
             </ProtectedRoute>
           }
         />
