@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from app.models.constant import GenderType
 
+
 # 1. STUDENT CREATE REQUEST
 class StudentCreateRequest(BaseModel):
     """DTO for creating a new student. System auto-generates Username and Email."""
@@ -17,23 +18,6 @@ class StudentCreateRequest(BaseModel):
                 "gender": "MALE",
                 "phone": "0905123456",
                 "class_id": 1
-            }
-        }
-
-
-# 2. STUDENT UPDATE REQUEST
-class StudentUpdateRequest(BaseModel):
-    """DTO for updating profile details. All fields are optional."""
-    full_name: Optional[str] = Field(None, max_length=150, min_length=2)
-    gender: Optional[GenderType] = None
-    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[0-9+]*$")
-    class_id: Optional[int] = None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "full_name": "Jane Doe",
-                "phone": "0905999999"
             }
         }
 
