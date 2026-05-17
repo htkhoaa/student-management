@@ -16,9 +16,12 @@ instance.interceptors.response.use(
   (response) => response,
   (error) => {
     const { response, config } = error;
+
     if (response?.status === 401 || response?.status === 403) {
-      const isLoginRequest = config.url.endsWith('/auth/login') || config.url.includes('/auth/login');
-      if (!isLoginRequest) {
+      const isLoginRequest = config.url.includes('/auth/login');
+      const isPasswordRequest = config.url.includes('/auth/password');
+
+      if (!isLoginRequest && !isPasswordRequest) {
         localStorage.clear();
         window.location.href = '/login';
       }

@@ -12,10 +12,10 @@ class ErrorCode(Enum):
 
     INVALID_TOKEN = (4000, "Invalid or expired token", status.HTTP_401_UNAUTHORIZED)
     CREDENTIALS_VALIDATION_FAILED = (4001, "Could not validate credentials", status.HTTP_401_UNAUTHORIZED)
+    INVALID_OLD_PASSWORD = (4002, "Invalid old password", status.HTTP_400_BAD_REQUEST)
 
     VALIDATION_ERROR = (8888, "Invalid input data", status.HTTP_422_UNPROCESSABLE_ENTITY)
     INTERNAL_SERVER_ERROR = (5555, "Error System", status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     def __init__(self, code, message, status_code):
         self.code = code
         self.message = message

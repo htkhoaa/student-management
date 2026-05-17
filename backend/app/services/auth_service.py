@@ -19,7 +19,7 @@ class AuthService:
             raise AppException(ErrorCode.UNAUTHENTICATED)
 
         if not user.is_active:
-            raise AppException(ErrorCode.UNAUTHORIZED, "You have been deactived")  # Hoặc ErrorCode.UNAUTHORIZED tùy bạn định nghĩa
+            raise AppException(ErrorCode.UNAUTHORIZED, "You have been deactived")
 
         token = generate_access_token(user)
         return {
@@ -34,11 +34,11 @@ class AuthService:
             raise AppException(ErrorCode.USER_NOT_FOUND)
 
         if not verify_password(payload.old_password, user.password_hash):
-            raise AppException(ErrorCode.CREDENTIALS_VALIDATION_FAILED, "Invalid old password")
+            raise AppException(ErrorCode.INVALID_OLD_PASSWORD)
 
         try:
             user.password_hash = get_password_hash(payload.new_password)
             self.db.commit()
         except Exception as e:
             self.db.rollback()
-            raise AppException(ErrorCode.INTERNAL_SERVER_ERROR, f"Failed to update new password: {str(e)}")
+            raise AppException(gtErrorCode.INTERNAL_SERVER_ERROR, f"Failed to update new password: {str(e)}")
