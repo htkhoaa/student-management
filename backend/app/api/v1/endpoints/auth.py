@@ -28,7 +28,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 def get_me(current_user: User = Depends(role_required([UserRole.ADMIN, UserRole.STUDENT]))):
     return current_user
 
-@router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(
     payload: PasswordChangeRequest, db: Session = Depends(get_db),
     current_user: User = Depends(role_required([UserRole.STUDENT]))

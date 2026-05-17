@@ -6,7 +6,7 @@ import StudentTable from "./pages/admin/Student.jsx";
 import AdminClass from "./pages/admin/Class.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Profile from "./pages/student/Profile.jsx"
-import RoleDashboard from "./components/RoleDashboard.jsx";
+import Password from "./pages/student/Password.jsx";
 import { UserRole } from "./constants/auth.constant.js";
 const { Title } = Typography;
 
@@ -56,6 +56,15 @@ function App() {
           element={
             <ProtectedRoute allowedRole={UserRole.STUDENT}>
               <Profile role={UserRole.STUDENT}/>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/password"
+          element={
+            <ProtectedRoute allowedRole={UserRole.STUDENT}>
+              <Password role={UserRole.STUDENT}/>
             </ProtectedRoute>
           }
         />
