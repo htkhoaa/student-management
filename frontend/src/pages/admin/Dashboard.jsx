@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Spin, message } from 'antd';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell} from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, GitBranch, Settings, LogOut, UserPlus, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, GitBranch, LogOut, Bell } from 'lucide-react';
 import axios from '../../api/axiosConfig';
 
 const BAR_COLORS = ['#9f7aea', '#38bdf8', '#f472b6', '#a78bfa', '#fb7185', '#34d399', '#2dd4bf', '#fb923c', '#818cf8'];
@@ -166,12 +166,12 @@ const s = {
   shell: {
     display: 'flex', height: '100vh',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: '#f9fafb', overflow: 'hidden',
+    background: '#fdf4f9', overflow: 'hidden',
   },
 
   /* Sidebar Styles */
   sidebar: {
-    width: 220, minWidth: 220, background: '#fff',
+    width: 220, minWidth: 220, background: '#fdf4f9',
     borderRight: '0.5px solid #e5e7eb',
     display: 'flex', flexDirection: 'column',
     position: 'fixed', height: '100vh', left: 0, zIndex: 10,
@@ -233,6 +233,7 @@ const s = {
   content: {
     flex: 1, minHeight: 0, overflowY: 'auto',
     padding: '16px 24px', boxSizing: 'border-box',
+    background: '#fdf4f9',
   },
 
   greetingRow: {

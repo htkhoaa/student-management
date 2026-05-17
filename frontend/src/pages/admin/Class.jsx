@@ -3,7 +3,7 @@ import { Spin, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, GitBranch, Settings,
-  LogOut, Bell, Plus, Search, Eye, Pencil, Trash2, ChevronDown, ChevronLeft, ChevronRight, Calculator
+  LogOut, Bell, Search, ChevronDown, ChevronLeft, ChevronRight, Calculator
 } from 'lucide-react';
 import axios from '../../api/axiosConfig';
 
@@ -26,6 +26,7 @@ const AdminClass = () => {
   // Stats
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalClasses, setTotalClasses]   = useState(0);
+  const [distribution, setDistribution] = useState([]);
 
   // Filters & Pagination
   const [search, setSearch]             = useState('');
@@ -38,13 +39,25 @@ const AdminClass = () => {
       axios.get('/api/v1/dashboard/stats'),
     ])
       .then(([clsRes, statsRes]) => {
-        setClasses(clsRes.data || []);
-
+        const classList = clsRes.data || [];
         const stats = statsRes.data || {};
-        setAdminName(stats.admin_name || 'Admin');
-        setTotalClasses(stats.total_classes || clsRes.data?.length || 0);
-        setTotalStudents(stats.total_students || 0);
+        const dist = stats.class_distribution || [];
 
+        // Hợp nhất dữ liệu: Tìm student_count từ distribution dựa trên class name
+        const mergedClasses = classList.map(cls => {
+          const match = dist.find(d => d.class_name === cls.name);
+          return {
+            ...cls,
+            // Nếu tìm thấy trong distribution thì lấy student_count, không thì giữ 0
+            student_count: match ? match.student_count : (cls.student_count || 0)
+          };
+        });
+
+        setClasses(mergedClasses);
+        setAdminName(stats.admin_name || 'Admin');
+        setTotalClasses(stats.total_classes || mergedClasses.length || 0);
+        setTotalStudents(stats.total_students || 0);
+        setDistribution(dist); // Lưu lại distribution nếu cần dùng cho mục đích khác
         setLoading(false);
       })
       .catch(err => {
@@ -136,9 +149,6 @@ const AdminClass = () => {
               <h1 style={s.pageTitle}>Class</h1>
               <p style={s.pageCount}>Showing {filtered.length} of {totalClasses} total classes</p>
             </div>
-            <button style={s.btnAdd} onClick={() => navigate('/admin/class/create')}>
-              <Plus size={16} /> Add class
-            </button>
           </div>
 
           {/* Stats Grid (3 columns) */}
@@ -224,7 +234,6 @@ const AdminClass = () => {
                     <th style={{ ...s.th, width: '35%' }}>CLASS NAME</th>
                     <th style={{ ...s.th, width: '20%' }}>STUDENTS</th>
                     <th style={{ ...s.th, width: '15%' }}>STATUS</th>
-                    <th style={{ ...s.th, width: '100px', textAlign: 'center' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -257,22 +266,6 @@ const AdminClass = () => {
                           {cls.is_active !== false ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td style={{ ...s.td, width: '100px', minWidth: '100px' }}>
-                        <div style={s.actions}>
-                          <button style={s.actionBtn} title="View"
-                            onClick={() => navigate(`/admin/classes/${cls.id}`)}>
-                            <Eye size={15} color="#bbb" />
-                          </button>
-                          <button style={s.actionBtn} title="Edit"
-                            onClick={() => navigate(`/admin/classes/${cls.id}/edit`)}>
-                            <Pencil size={15} color="#bbb" />
-                          </button>
-                          <button style={s.actionBtn} title="Delete"
-                            onClick={() => handleDelete(cls.id)}>
-                            <Trash2 size={15} color="#fca5a5" />
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -293,7 +286,7 @@ const s = {
   shell: {
     display: 'flex', height: '100vh', width: '100%',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: '#f9fafb', overflow: 'hidden',
+    background: '#fdf4f9', overflow: 'hidden',
   },
   sidebar: {
     width: 220, minWidth: 220, background: '#fff',
@@ -357,6 +350,7 @@ const s = {
     padding: '16px 24px 26px', boxSizing: 'border-box',
     overflow: 'hidden', gap: 16,
     display: 'flex', flexDirection: 'column',
+    background: '#fdf4f9',
   },
 
   /* Tiêu đề & Nút Add */
@@ -435,12 +429,12 @@ const s = {
   /* Table styling */
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
   th: {
-    padding: '9px 16px', textAlign: 'left', verticalAlign: 'middle',
+    padding: '6px 16px', textAlign: 'left', verticalAlign: 'middle',
     fontSize: 12, fontWeight: 600, color: '#e91e8c',
     borderBottom: '1px solid #f0f0f0', whiteSpace: 'nowrap', background: '#fff',
   },
   tr: { borderBottom: '0.5px solid #f5f5f5' },
-  td: { padding: '7px 16px', verticalAlign: 'middle', textAlign: 'left', whiteSpace: 'nowrap' },
+  td: { padding: '5px 16px', verticalAlign: 'middle', textAlign: 'left', whiteSpace: 'nowrap' },
   classNameText: { fontSize: 13, fontWeight: 600, color: '#111' },
   statusBadge: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
