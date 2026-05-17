@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Form, Input, Button, Typography, message } from "antd";
-import axios from "axios";
+import api from "../api/axiosConfig.js"
 import { useNavigate } from "react-router-dom";
 import { UserRole } from "../constants/auth.constant.js";
 
@@ -14,7 +14,7 @@ const Login = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:8000/api/v1/auth/login", {
+      const response = await api.post("http://localhost:8000/api/v1/auth/login", {
         username: values.username,
         password: values.password,
       });
@@ -45,7 +45,7 @@ const Login = () => {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        background: "#fdf0f5", // Màu hồng nhạt đồng bộ với thiết kế
+        background: "#fdf0f5"
       }}
     >
       <div
