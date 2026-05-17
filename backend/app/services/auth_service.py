@@ -14,8 +14,12 @@ class AuthService:
 
     def login(self, req: LoginRequest):
         user = self.user_repo.get_user_by_username(req.username)
+
         if not user or not verify_password(req.password, user.password_hash):
             raise AppException(ErrorCode.UNAUTHENTICATED)
+
+        if not user.is_active:
+            raise AppException(ErrorCode.UNAUTHORIZED, "You have been deactived")  # Hoặc ErrorCode.UNAUTHORIZED tùy bạn định nghĩa
 
         token = generate_access_token(user)
         return {

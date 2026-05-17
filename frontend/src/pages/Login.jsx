@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import { Form, Input, Button, Typography, message } from "antd";
-import api from "../api/axiosConfig.js"
+import api from "../api/axiosConfig.js";
 import { useNavigate } from "react-router-dom";
 import { UserRole } from "../constants/auth.constant.js";
 
 const { Title, Text: AntText } = Typography;
 
 const Login = () => {
+  const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
-  const [role, setRole] = useState("Admin");
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const response = await api.post("http://localhost:8000/api/v1/auth/login", {
+      const response = await api.post("/api/v1/auth/login", {
         username: values.username,
         password: values.password,
       });
@@ -23,7 +23,7 @@ const Login = () => {
 
       localStorage.setItem("token", access_token);
       localStorage.setItem("role", userRole);
-      message.success("Login successfully!");
+      messageApi.success("Login successfully!");
 
       if (userRole === UserRole.ADMIN) {
         navigate("/admin/dashboard");
@@ -32,12 +32,12 @@ const Login = () => {
           localStorage.setItem("studentId", user.student_id);
           navigate("/student/profile");
         } else {
-          message.error("Data error: Your account is not linked to a student profile.");
+          messageApi.error("Data error: Your account is not linked to a student profile.");
         }
       }
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Invalid username or password!";
-      message.error(errorMsg);
+      messageApi.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -46,11 +46,16 @@ const Login = () => {
   return (
     <div
       style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        minHeight: "100vh",
-        background: "#fdf0f5"
+        background: "#fdf0f5",
+        zIndex: 9999,
       }}
     >
       <div
@@ -67,38 +72,6 @@ const Login = () => {
             Welcome back
           </Title>
           <AntText type="secondary">Sign in to continue to your portal</AntText>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            background: "#f0f0f0",
-            borderRadius: 10,
-            padding: 4,
-            marginBottom: 32,
-          }}
-        >
-          {["Admin", "Student"].map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setRole(r)}
-              style={{
-                flex: 1,
-                padding: "10px 0",
-                border: "none",
-                borderRadius: 8,
-                cursor: "pointer",
-                transition: "all 0.3s",
-                background: role === r ? "#fff" : "transparent",
-                color: role === r ? "#e91e8c" : "#595959",
-                fontWeight: role === r ? 700 : 500,
-                boxShadow: role === r ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
-              }}
-            >
-              {r}
-            </button>
-          ))}
         </div>
 
         <Form
@@ -147,14 +120,17 @@ const Login = () => {
                 fontSize: 16,
               }}
             >
-              Sign in as {role}
+              Sign in
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ textAlign: "center", marginTop: 24 }}>
           <AntText style={{ fontSize: 13, color: "#bfbfbf" }}>
-            Need help? Contact <a href="mailto:it@school.edu" style={{ color: "#e91e8c" }}>IT Department</a>
+            Need help? Contact{" "}
+            <a href="mailto:it@school.edu" style={{ color: "#e91e8c" }}>
+              IT Department
+            </a>
           </AntText>
         </div>
       </div>

@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import axios from '../../api/axiosConfig';
 
-// ─── Navigation Configuration ────────────────────────────────────────────────
 const NAV_MANAGE = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
   { key: 'students',  label: 'Students',  icon: Users,            path: '/admin/student'  },
@@ -23,12 +22,10 @@ const AdminClass = () => {
   const [adminName, setAdminName]   = useState('Admin');
   const [loading, setLoading]       = useState(true);
 
-  // Stats States
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalClasses, setTotalClasses]   = useState(0);
   const [distribution, setDistribution]   = useState([]);
 
-  // Filters & Pagination States
   const [search, setSearch]             = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage]                 = useState(1);
@@ -43,12 +40,10 @@ const AdminClass = () => {
         const stats = statsRes.data || {};
         const dist = stats.class_distribution || [];
 
-        // Hợp nhất dữ liệu: Tìm student_count từ distribution dựa trên class name
         const mergedClasses = classList.map(cls => {
           const match = dist.find(d => d.class_name === cls.name);
           return {
             ...cls,
-            // Nếu tìm thấy trong distribution thì lấy student_count, không thì giữ 0
             student_count: match ? match.student_count : (cls.student_count || 0)
           };
         });
@@ -67,10 +62,8 @@ const AdminClass = () => {
       });
   }, []);
 
-  // Tính trung bình học sinh mỗi lớp
   const avgPerClass = totalClasses > 0 ? Math.round(totalStudents / totalClasses) : 0;
 
-  // Logic lọc dữ liệu theo search và status
   const filtered = classes.filter(c => {
     const q = search.toLowerCase();
     const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.id?.toString().includes(q);
@@ -78,7 +71,6 @@ const AdminClass = () => {
     return matchSearch && matchStatus;
   });
 
-  // Logic phân trang
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -92,7 +84,7 @@ const AdminClass = () => {
 
   return (
     <div style={s.shell}>
-      {/* ── SIDEBAR ── */}
+      {/* SIDEBAR */}
       <aside style={s.sidebar}>
         <div style={s.logoRow} onClick={() => navigate('/admin/dashboard')}>
           <div style={s.logoBadge}>SM</div>
@@ -122,7 +114,7 @@ const AdminClass = () => {
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
+      {/* MAIN CONTENT */}
       <div style={s.main}>
         <div style={s.topbar}>
           <div>
@@ -134,7 +126,6 @@ const AdminClass = () => {
         </div>
 
         <div style={s.content}>
-          {/* Header Row */}
           <div style={s.pageHeader}>
             <div>
               <h1 style={s.pageTitle}>Classes</h1>
@@ -142,7 +133,6 @@ const AdminClass = () => {
             </div>
           </div>
 
-          {/* Stats Grid */}
           <div style={s.statsGrid}>
             <div style={s.statCard}>
               <div style={{ ...s.statIconBox, background: '#ede9fe' }}>
@@ -167,7 +157,6 @@ const AdminClass = () => {
             </div>
           </div>
 
-          {/* Table Card */}
           <div style={s.tableCard}>
             <div style={s.filterRow}>
               <div style={s.searchBox}>
@@ -265,18 +254,28 @@ const AdminClass = () => {
   );
 };
 
-// ─── Styles ───
 const s = {
   shell: {
-    display: 'flex', height: '100vh', width: '100%',
+    display: 'flex',
+    height: '100vh',
+    width: '100vw',         // ← full viewport width
+    position: 'fixed',      // ← thoát khỏi layout cha
+    top: 0,
+    left: 0,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: '#fdf4f9', overflow: 'hidden',
+    background: '#fdf4f9',
+    overflow: 'hidden',
+    zIndex: 100,
   },
   sidebar: {
-    width: 220, minWidth: 220, background: '#fff',
+    width: 220,
+    minWidth: 220,
+    flexShrink: 0,           // ← không bị co lại
+    background: '#fff',
     borderRight: '0.5px solid #e5e7eb',
-    display: 'flex', flexDirection: 'column',
-    position: 'fixed', height: '100vh', left: 0, zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
   },
   logoRow: {
     display: 'flex', alignItems: 'center', gap: 10,
@@ -312,8 +311,12 @@ const s = {
   userName: { fontSize: 13, fontWeight: 600, color: '#111' },
   userRole: { fontSize: 11, color: '#888' },
   main: {
-    flex: 1, marginLeft: 220, height: '100vh',
-    display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden',
+    flex: 1,
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    overflow: 'hidden',
   },
   topbar: {
     background: '#fff', borderBottom: '0.5px solid #e5e7eb',
@@ -338,7 +341,7 @@ const s = {
     display: 'flex', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: 16, gap: 16, flexShrink: 0,
   },
-  pageTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em', lineHeight: '1.2'},
+  pageTitle: { fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em', lineHeight: '1.2' },
   pageCount: { fontSize: 13, color: '#888', marginTop: 4, marginBottom: 0 },
   statsGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
