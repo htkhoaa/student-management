@@ -1,7 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate  } from 'react-router-dom';
-import Login from './pages/Login';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Button, Typography, Space } from 'antd';
+import Login from './pages/Login';
+import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+
 const { Title } = Typography;
 import Profile from "./pages/Profile.jsx";
 import RoleDashboard from "./components/RoleDashboard.jsx";
@@ -11,23 +13,21 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public Route */}
         <Route path="/login" element={<Login />} />
 
-          <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* Auth Protected Routes */}
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
 
         <Route
           path="/admin/dashboard"
           element={
             <ProtectedRoute allowedRole={UserRole.ADMIN}>
-              <RoleDashboard role={UserRole.ADMIN}/>
+              <AdminDashboard role={UserRole.ADMIN}/>
             </ProtectedRoute>
           }
         />
